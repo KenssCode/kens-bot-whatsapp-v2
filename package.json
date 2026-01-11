@@ -1,0 +1,31 @@
+{
+  "name": "bot-wa-jualbeli",
+  "version": "1.0.0",
+  "description": "Bot WhatsApp untuk grup jual beli dengan fitur lengkap - Online 24 jam di Railway",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
+  },
+  "keywords": [
+    "whatsapp",
+    "bot",
+    "jualbeli",
+    "railway"
+  ],
+  "author": "Bot WhatsApp",
+  "license": "MIT",
+  "dependencies": {
+    "@adiwajshing/baileys": "^6.5.0",
+    "dotenv": "^16.3.1",
+    "pg": "^8.11.3",
+    "pino": "^8.16.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
+
