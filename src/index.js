@@ -27,7 +27,7 @@ async function initSocket() {
     Browsers, 
     fetchLatestBaileysVersion, 
     DisconnectReason 
-  } = baileys;
+  } = baileys; 
 
   try {
     if (!fs.existsSync(sessionDir)) {

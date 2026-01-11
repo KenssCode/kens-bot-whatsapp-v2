@@ -1,42 +1,31 @@
 const pino = require('pino');
 const config = require('../config/config');
 
-let store = null;
+// Kita buat store jadi object kosong saja
+let store = {
+  chats: { all: () => [], get: () => null, insert: () => {} },
+  contacts: { all: () => [], get: () => null, upsert: () => {} },
+  messages: { get: () => null, upsert: () => {} },
+  groups: { get: () => null, update: () => {} }
+};
+
 const logger = pino({ level: config.logLevel || 'silent' });
 
-async function getStoreInstance() {
-  if (!store) {
-    const baileys = await import('@whiskeysockets/baileys');
-    
-    // Berdasarkan log kamu, kita ambil dari baileys.default
-    // Karena di log tertulis ada 'default' di dalam list tersebut
-    const makeInMemoryStore = baileys.makeInMemoryStore || 
-                            (baileys.default && baileys.default.makeInMemoryStore) ? baileys.default.makeInMemoryStore : null;
-
-    if (typeof makeInMemoryStore !== 'function') {
-      // Jika masih gagal, kita paksa pakai require tapi khusus di baris ini saja
-      try {
-        const { makeInMemoryStore: mks } = require('@whiskeysockets/baileys');
-        store = mks({ logger });
-      } catch (e) {
-        throw new Error("Gagal total mengambil makeInMemoryStore. Coba restart server Railway kamu.");
-      }
-    } else {
-      store = makeInMemoryStore({ logger });
-    }
-  }
-  return store;
-}
-
+// Fungsi bindSocket dibuat supaya tidak melakukan apa-apa
 async function bindSocket(sock) {
-  const currentStore = await getStoreInstance();
-  if (currentStore && typeof currentStore.bind === 'function') {
-    currentStore.bind(sock.ev);
-  }
+  console.log("ℹ️ Store sementara dinonaktifkan untuk menghindari error library.");
+  return true;
 }
 
 module.exports = {
   bindSocket,
   logger,
-  get store() { return store; }
+  store,
+  getChat: () => null,
+  getContact: () => null,
+  getGroup: () => null,
+  getGroupParticipants: () => [],
+  getAllGroups: () => [],
+  saveMessage: () => {},
+  getMessages: () => []
 };
