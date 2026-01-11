@@ -13,12 +13,12 @@
 const {
   default: makeWASocket,
   useMultiFileAuthState,
-  disconnect,
   Browsers,
   fetchLatestBaileysVersion,
   makeInMemoryStore,
-  jidNormalizedUser
-} = require('@adiwajshing/baileys');
+  jidNormalizedUser,
+  DisconnectReason
+} = require('@whiskeysockets/baileys');
 const path = require('path');
 const fs = require('fs');
 const pino = require('pino');
