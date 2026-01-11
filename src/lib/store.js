@@ -6,12 +6,16 @@ const logger = pino({ level: config.logLevel || 'silent' });
 
 async function getStoreInstance() {
   if (!store) {
-    // Perbaikan cara import di Node.js v22
     const baileys = await import('@whiskeysockets/baileys');
-    // Cari makeInMemoryStore di dalam object baileys
-    const createStore = baileys.default?.makeInMemoryStore || baileys.makeInMemoryStore;
     
-    store = createStore({ logger });
+    // Ini cara paling aman memanggil makeInMemoryStore di ESM
+    const makeInMemoryStore = baileys.default?.makeInMemoryStore || baileys.makeInMemoryStore;
+    
+    if (typeof makeInMemoryStore !== 'function') {
+      throw new Error("Gagal mengambil fungsi makeInMemoryStore dari Baileys");
+    }
+    
+    store = makeInMemoryStore({ logger });
   }
   return store;
 }
