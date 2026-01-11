@@ -1,78 +1,50 @@
 /**
- * Store Management untuk Baileys
- * Mengelola session dan state bot
+ * Store Management untuk Baileys - Fixed for ESM
  */
 
-// Ganti dari @adiwajshing ke @whiskeysockets
-const { makeInMemoryStore } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const config = require('../config/config');
 
-// Create logger
+// Inisialisasi variabel di luar agar bisa diakses fungsi lain
+let store = null;
+
 const logger = pino({
   level: config.logLevel || 'silent'
 });
 
-// Create in-memory store
-const store = makeInMemoryStore({
-  logger: logger
-});
+/**
+ * Fungsi pembungkus untuk menangani Dynamic Import
+ */
+async function getStoreInstance() {
+  if (!store) {
+    // Trik dynamic import untuk fix ERR_REQUIRE_ESM
+    const { makeInMemoryStore } = await import('@whiskeysockets/baileys');
+    store = makeInMemoryStore({ logger });
+  }
+  return store;
+}
 
 /**
  * Bind store ke socket
  */
-function bindSocket(sock) {
-  // Baileys v6+ menggunakan bind langsung untuk mempermudah sinkronisasi data
-  store.bind(sock.ev);
-
-  // Event handler manual tetap dipertahankan jika diperlukan untuk log/debug
-  sock.ev.on('messages.upsert', ({ messages, type }) => {
-    if (type === 'notify') {
-      messages.forEach(msg => {
-        if (msg.key && msg.key.remoteJid) {
-          // Store otomatis menghandle ini lewat .bind(), tapi kita bisa tambahkan log di sini
-        }
-      });
-    }
-  });
+async function bindSocket(sock) {
+  const currentStore = await getStoreInstance();
+  currentStore.bind(sock.ev);
 }
 
 /**
- * Helper functions
+ * Helper functions - Dibuat async agar bisa menunggu store siap
  */
-function getChat(jid) { return store.chats.get(jid); }
-function getContact(jid) { return store.contacts.get(jid); }
-function getGroup(jid) { return store.groups.get(jid); }
-
-function getGroupParticipants(jid) {
-  const group = getGroup(jid);
-  return group ? group.participants : [];
+async function getAllGroups() {
+  const currentStore = await getStoreInstance();
+  return Object.values(currentStore.groups).filter(g => g.id.endsWith('@g.us'));
 }
 
-function getAllGroups() {
-  return Object.values(store.groups).filter(g => g.id.endsWith('@g.us'));
-}
-
-function saveMessage(message) {
-  if (message.key && message.key.remoteJid) {
-    store.messages.upsert(message.key.remoteJid, [message], message.key);
-  }
-}
-
-function getMessages(jid, limit = 50) {
-  const messages = store.messages.get(jid);
-  return messages ? messages.slice(-limit) : [];
-}
-
+// Export fungsi
 module.exports = {
-  store,
   bindSocket,
-  getChat,
-  getContact,
-  getGroup,
-  getGroupParticipants,
   getAllGroups,
-  saveMessage,
-  getMessages,
-  logger
+  logger,
+  // Karena kodingan lamamu mungkin memanggil .store, kita buat getter
+  get store() { return store; } 
 };
