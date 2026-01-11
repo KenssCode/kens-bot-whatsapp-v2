@@ -8,28 +8,22 @@ async function getStoreInstance() {
   if (!store) {
     const baileys = await import('@whiskeysockets/baileys');
     
-    // Logika pencarian fungsi yang lebih kuat
-    let makeInMemoryStore = baileys.makeInMemoryStore || 
-                            baileys.default?.makeInMemoryStore || 
-                            (baileys.default && baileys.default.default ? baileys.default.default.makeInMemoryStore : null);
-    
-    // Jika masih gagal, kita ambil dari properti manapun yang bernama makeInMemoryStore
-    if (!makeInMemoryStore) {
-        const keys = Object.keys(baileys);
-        for (const key of keys) {
-            if (baileys[key]?.makeInMemoryStore) {
-                makeInMemoryStore = baileys[key].makeInMemoryStore;
-                break;
-            }
-        }
-    }
+    // Berdasarkan log kamu, kita ambil dari baileys.default
+    // Karena di log tertulis ada 'default' di dalam list tersebut
+    const makeInMemoryStore = baileys.makeInMemoryStore || 
+                            (baileys.default && baileys.default.makeInMemoryStore) ? baileys.default.makeInMemoryStore : null;
 
     if (typeof makeInMemoryStore !== 'function') {
-      console.error("Struktur Baileys yang diterima:", Object.keys(baileys));
-      throw new Error("Gagal mengambil fungsi makeInMemoryStore dari Baileys. Pastikan versi library benar.");
+      // Jika masih gagal, kita paksa pakai require tapi khusus di baris ini saja
+      try {
+        const { makeInMemoryStore: mks } = require('@whiskeysockets/baileys');
+        store = mks({ logger });
+      } catch (e) {
+        throw new Error("Gagal total mengambil makeInMemoryStore. Coba restart server Railway kamu.");
+      }
+    } else {
+      store = makeInMemoryStore({ logger });
     }
-    
-    store = makeInMemoryStore({ logger });
   }
   return store;
 }
