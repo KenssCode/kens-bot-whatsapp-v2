@@ -9,7 +9,6 @@ node_modules/
 # Session data
 session/
 sessions/
-*.json
 
 # Logs
 logs/
@@ -33,3 +32,6 @@ Thumbs.db
 tmp/
 temp/
 
+# Keep specific JSON files
+!railway.json
+!package.json
