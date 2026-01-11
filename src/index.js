@@ -46,22 +46,31 @@ async function initSocket() {
     const phoneNumber = process.env.BOT_NUMBER || config.botNumber;
 
     if (!sock.authState.creds.registered) {
-      if (phoneNumber) {
-        console.log(`\n[SYSTEM] Attempting to pair with number: ${phoneNumber}`);
-        setTimeout(async () => {
-          try {
-            let code = await sock.requestPairingCode(phoneNumber.replace(/[^0-9]/g, ''));
+      // Ganti bagian requestPairingCode kamu dengan ini:
+if (phoneNumber) {
+    // Menghapus semua karakter kecuali angka
+    const cleanNumber = phoneNumber.replace(/[^0-9]/g, ''); 
+    console.log(`\n[SYSTEM] Attempting to pair with number: ${cleanNumber}`);
+    
+    setTimeout(async () => {
+        try {
+            // Kita tambahkan pengecekan jika nomor diawali 0, ganti ke 62
+            let finalNumber = cleanNumber;
+            if (finalNumber.startsWith('0')) {
+                finalNumber = '62' + finalNumber.slice(1);
+            }
+
+            let code = await sock.requestPairingCode(finalNumber);
             code = code?.match(/.{1,4}/g)?.join("-") || code;
             console.log("\n========================================");
             console.log(" KODE PAIRING WHATSAPP ANDA:");
             console.log(` >>>  ${code}  <<< `);
             console.log("========================================\n");
-          } catch (pairError) {
+        } catch (pairError) {
             console.error("[ERROR] Gagal meminta kode pairing:", pairError.message);
-          }
-        }, 3000);
-      }
-    }
+        }
+    }, 3000);
+}
 
     await bindSocket(sock);
     sock.ev.on('creds.update', saveCreds);
