@@ -1,9 +1,6 @@
 /**
- * Command: .tagall
- * Mention semua member di grup (hanya admin)
+ * Command: .tagall (Fixed for No-Store Mode)
  */
-
-const { getGroup } = require('../lib/store');
 const { createWarningMessage, createInfoMessage } = require('../lib/utils');
 
 module.exports = {
@@ -16,82 +13,56 @@ module.exports = {
   async execute(sock, message, args) {
     try {
       const chatId = message.key.remoteJid;
-      const senderId = message.key.participant;
+      // Gunakan senderId dari messageObj di index.js
+      const senderId = message.senderId; 
       
-      // Check if it's a group
-      if (!chatId.endsWith('@g.us')) {
-        return { 
-          success: false, 
-          message: createInfoMessage('Command ini hanya dapat digunakan di dalam grup.') 
-        };
-      }
-      
-      const group = getGroup(chatId);
-      
-      if (!group) {
-        return { 
-          success: false, 
-          message: createWarningMessage('Data grup tidak ditemukan. Kirim pesan di grup terlebih dahulu.') 
-        };
-      }
-      
-      // Get all group participants
-      const participants = group.participants || [];
+      // 1. Ambil data partisipan langsung dari metadata grup
+      const groupMetadata = await sock.groupMetadata(chatId);
+      const participants = groupMetadata.participants || [];
       
       if (participants.length === 0) {
         return { 
           success: false, 
-          message: createInfoMessage('Tidak ada member di grup ini.') 
+          message: createInfoMessage('Gagal mengambil daftar member.') 
         };
       }
       
-      // Get optional message
+      // 2. Ambil pesan tambahan jika ada
       const customMessage = args.join(' ');
       
-      // Build the tagall message
+      // 3. Susun teks Tag All
       let tagallText = `🏷️ *TAG ALL* 🏷️\n\n`;
-      
       if (customMessage) {
-        tagallText += `${customMessage}\n\n`;
+        tagallText += `💬 *Pesan:* ${customMessage}\n\n`;
       }
-      
       tagallText += `━━━━━━━━━━━━━━━━━━━━\n`;
       
-      // Add mention for all participants
-      const participantJids = [];
+      // Ambil daftar JID untuk mentions dan buat list nomornya
+      const participantJids = participants.map(p => p.id);
       
-      participants.forEach(participant => {
-        if (participant.id !== senderId) { // Don't mention sender
-          participantJids.push(participant.id);
-        }
+      participants.forEach((participant, index) => {
+        const num = participant.id.split('@')[0];
+        tagallText += `${index + 1}. @${num}\n`;
       });
       
-      // Add mentions
-      if (participantJids.length > 0) {
-        participantJids.forEach(jid => {
-          const name = jid.split('@')[0];
-          tagallText += `@${name}\n`;
-        });
-      }
-      
-      tagallText += `━━━━━━━━━━━━━━━━━━━━\n\n`;
+      tagallText += `━━━━━━━━━━━━━━━━━━━━\n`;
       tagallText += `👥 *Total:* ${participants.length} member\n`;
-      tagallText += `📍 Via: @${senderId.split('@')[0]}\n\n`;
-      tagallText += `_Mohon perhatian semua_ 👀`;
+      tagallText += `📍 Oleh: @${senderId.split('@')[0]}\n`;
+      tagallText += `━━━━━━━━━━━━━━━━━━━━`;
       
-      // Add sender to mentions
-      const allMentions = [senderId, ...participantJids];
-      
+      // 4. Kirim pesan dengan mentions
       await sock.sendMessage(chatId, {
         text: tagallText,
-        mentions: allMentions
+        mentions: participantJids
       });
       
       return { success: true };
     } catch (error) {
       console.error('Error in tagall command:', error);
-      return { success: false, message: error.message };
+      return { 
+        success: false, 
+        message: 'Gagal melakukan tagall. Pastikan Bot adalah Admin!' 
+      };
     }
   }
 };
-

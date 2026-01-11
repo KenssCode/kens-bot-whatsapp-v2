@@ -1,16 +1,13 @@
 /**
- * Command: .admin
- * Menampilkan daftar admin di grup
+ * Command: .admin (Fixed for No-Store Mode)
  */
-
-const { getGroup, getAdmins } = require('../lib/store');
 const { createInfoMessage, createWarningMessage } = require('../lib/utils');
 
 module.exports = {
   name: 'admin',
   description: 'Menampilkan daftar admin di grup',
   usage: '',
-  example: '',
+  example: '.admin',
   async execute(sock, message, args) {
     try {
       const chatId = message.key.remoteJid;
@@ -22,37 +19,34 @@ module.exports = {
           message: createInfoMessage('Command ini hanya dapat digunakan di dalam grup.') 
         };
       }
+
+      // 1. Ambil metadata grup langsung dari WhatsApp (Anti-Store)
+      const groupMetadata = await sock.groupMetadata(chatId);
+      const participants = groupMetadata.participants || [];
       
-      const group = getGroup(chatId);
-      
-      if (!group) {
-        return { 
-          success: false, 
-          message: createWarningMessage('Data grup tidak ditemukan. Kirim pesan di grup terlebih dahulu.') 
-        };
-      }
-      
-      const admins = getAdmins(group);
+      // 2. Filter peserta yang merupakan admin atau superadmin
+      const admins = participants.filter(p => p.admin === 'admin' || p.admin === 'superadmin');
       
       let adminText = `👮 *DAFTAR ADMIN GRUP* 👮\n\n`;
-      adminText += `━━━━━━━━━━━━━━━━━━━━\n\n`;
-      adminText += `*Grup:* ${group.subject || 'Unknown'}\n`;
-      adminText += `*Total Admin:* ${admins.length}\n\n`;
+      adminText += `━━━━━━━━━━━━━━━━━━━━\n`;
+      adminText += `*Grup:* ${groupMetadata.subject || 'Unknown'}\n`;
+      adminText += `*Total Admin:* ${admins.length}\n`;
       adminText += `━━━━━━━━━━━━━━━━━━━━\n\n`;
       
       if (admins.length === 0) {
         adminText += `ℹ️ Tidak ada admin di grup ini.\n`;
       } else {
         admins.forEach((admin, index) => {
-          const name = admin.name || admin.notify || 'Unknown';
-          adminText += `${index + 1}. ${name}\n`;
-          adminText += `   └─ @${admin.id.split('@')[0]}\n\n`;
+          // Kita pakai format nomor saja karena store (nama kontak) sedang off
+          const jid = admin.id.split('@')[0];
+          adminText += `${index + 1}. @${jid}\n`;
         });
       }
       
-      adminText += `━━━━━━━━━━━━━━━━━━━━\n`;
+      adminText += `\n━━━━━━━━━━━━━━━━━━━━\n`;
+      adminText += `💡 _Gunakan .h untuk panggil admin_`;
       
-      // Send message with admin mentions
+      // 3. Kirim pesan dengan mentions agar nomornya biru (bisa diklik)
       const adminJids = admins.map(admin => admin.id);
       
       await sock.sendMessage(chatId, {
@@ -63,8 +57,10 @@ module.exports = {
       return { success: true };
     } catch (error) {
       console.error('Error in admin command:', error);
-      return { success: false, message: error.message };
+      return { 
+        success: false, 
+        message: 'Gagal mengambil data admin. Pastikan Bot ada di grup ini!' 
+      };
     }
   }
 };
-
