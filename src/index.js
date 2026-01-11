@@ -92,7 +92,7 @@ async function initSocket() {
       }
     });
 
-    // Message events
+// Handle Pesan
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
       if (type === 'notify') {
         for (const message of messages) {
@@ -101,12 +101,13 @@ async function initSocket() {
           const chatId = message.key.remoteJid;
           const isGroup = chatId.endsWith('@g.us');
           const messageText = message.message?.conversation || 
-                             message.message?.extendedTextMessage?.text || '';
+                             message.message?.extendedTextMessage?.text || 
+                             '';
 
+          // Ambil command & args
           const { command, args } = parseCommand(messageText);
 
-          // PERBAIKAN DI SINI:
-          // Pastikan pemanggilan executeCommand sesuai dengan yang ada di handler.js
+          // Jika ada command, langsung eksekusi tanpa hasCommand()
           if (command) {
             let isBotAdmin = false;
             let groupMetadata = null;
@@ -128,14 +129,16 @@ async function initSocket() {
               senderId: message.key.participant || chatId
             };
 
-            // Panggil fungsi executeCommand langsung
+            // LANGSUNG PANGGIL FUNGSINYA
             try {
               const result = await executeCommand(command, sock, messageObj, args);
-              if (result?.message) {
+              
+              // Kirim balasan jika ada pesan dari handler
+              if (result && result.message) {
                 await sock.sendMessage(chatId, { text: result.message }, { quoted: message });
               }
-            } catch (cmdError) {
-              console.error("Gagal menjalankan command:", cmdError);
+            } catch (error) {
+              console.error(`Error saat menjalankan command ${command}:`, error);
             }
           }
         }
