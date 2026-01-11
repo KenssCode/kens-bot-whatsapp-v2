@@ -1,5 +1,5 @@
 /**
- * Bot WhatsApp Jual Beli - Full Fixed (Pairing Mode & Admin Detection)
+ * Bot WhatsApp Jual Beli - Full Monitor Version
  */
 
 const path = require('path');
@@ -16,9 +16,6 @@ const { parseCommand } = require('./lib/utils');
 // Session directory
 const sessionDir = path.join(__dirname, '../sessions');
 
-/**
- * Inisialisasi socket menggunakan Pairing Code
- */
 async function initSocket() {
   const baileys = await import('@whiskeysockets/baileys');
   const { 
@@ -50,7 +47,7 @@ async function initSocket() {
 
     if (!sock.authState.creds.registered) {
       if (phoneNumber) {
-        console.log(`\nAttempting to pair with number: ${phoneNumber}`);
+        console.log(`\n[SYSTEM] Attempting to pair with number: ${phoneNumber}`);
         setTimeout(async () => {
           try {
             let code = await sock.requestPairingCode(phoneNumber.replace(/[^0-9]/g, ''));
@@ -60,11 +57,9 @@ async function initSocket() {
             console.log(` >>>  ${code}  <<< `);
             console.log("========================================\n");
           } catch (pairError) {
-            console.error("Gagal meminta kode pairing:", pairError.message);
+            console.error("[ERROR] Gagal meminta kode pairing:", pairError.message);
           }
         }, 3000);
-      } else {
-        console.log("\n⚠️ BOT_NUMBER tidak ditemukan di environment variables Railway!");
       }
     }
 
@@ -73,23 +68,18 @@ async function initSocket() {
 
     sock.ev.on('connection.update', async (update) => {
       const { connection, lastDisconnect } = update;
-      
       if (connection === 'close') {
         const statusCode = lastDisconnect?.error?.output?.statusCode;
-        const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
-        
-        if (shouldReconnect) {
-          console.log('Connection closed, reconnecting...');
+        console.log(`[CONN] Closed. Status: ${statusCode}`);
+        if (statusCode !== DisconnectReason.loggedOut) {
           setTimeout(() => initSocket(), 5000);
-        } else {
-          console.log('Terputus permanen. Hapus folder sessions di Railway dan restart.');
         }
       } else if (connection === 'open') {
-        console.log('✅ Bot WhatsApp connected successfully!');
+        console.log('✅ [CONNECTED] Bot WhatsApp sudah aktif!');
       }
     });
 
-    // Handle Pesan
+    // --- MONITORING PESAN ---
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
       if (type === 'notify') {
         for (const message of messages) {
@@ -101,11 +91,15 @@ async function initSocket() {
                              message.message?.extendedTextMessage?.text || 
                              '';
 
+          // Log setiap pesan masuk ke Railway
+          console.log(`\n📩 [MSG] From: ${chatId} | Text: ${messageText}`);
+
           const { command, args } = parseCommand(messageText);
 
           if (command) {
-            const senderId = message.key.participant || message.key.remoteJid;
+            console.log(`🚀 [EXEC] Mencoba Command: .${command}`);
             
+            const senderId = message.key.participant || message.key.remoteJid;
             let isBotAdmin = false;
             let isSenderAdmin = false;
             let groupMetadata = null;
@@ -118,10 +112,12 @@ async function initSocket() {
                 const botId = sock.user.id.split(':')[0] + '@s.whatsapp.net';
                 const cleanSenderId = senderId.split(':')[0] + '@s.whatsapp.net';
 
-                isBotAdmin = participants.some(p => p.id === botId && p.admin);
-                isSenderAdmin = participants.some(p => p.id === cleanSenderId && p.admin);
+                isBotAdmin = participants.some(p => p.id === botId && (p.admin || p.isAdmin));
+                isSenderAdmin = participants.some(p => p.id === cleanSenderId && (p.admin || p.isAdmin));
+                
+                console.log(`🛡️ [ADMIN CHECK] BotAdmin: ${isBotAdmin} | SenderAdmin: ${isSenderAdmin}`);
               } catch (e) { 
-                console.error("Gagal ambil metadata grup:", e);
+                console.error("[ERROR] Gagal ambil metadata grup:", e.message);
               }
             }
 
@@ -138,10 +134,11 @@ async function initSocket() {
             try {
               const result = await executeCommand(command, sock, messageObj, args);
               if (result && result.message) {
+                console.log(`📤 [REPLY] Mengirim respon untuk .${command}`);
                 await sock.sendMessage(chatId, { text: result.message }, { quoted: message });
               }
             } catch (error) {
-              console.error(`Error command ${command}:`, error);
+              console.error(`❌ [FATAL ERROR] Command .${command}:`, error);
             }
           }
         }
@@ -157,9 +154,9 @@ async function initSocket() {
 
 async function main() {
   try {
-    console.log('🚀 Starting Bot WhatsApp (Pairing Mode)...');
+    console.log('🚀 Starting Bot (Monitor Mode)...');
     initDatabase();
-    try { await initTables(); } catch (e) { console.log("DB Skip: " + e.message); }
+    try { await initTables(); } catch (e) {}
     loadCommands();
     await initSocket();
   } catch (error) {
