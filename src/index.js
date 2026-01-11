@@ -14,7 +14,7 @@ const { initDatabase, initTables, closeDatabase } = require('./lib/connect');
 const { parseCommand } = require('./lib/utils');
 
 // Session directory
-const sessionDir = path.join(__dirname, '../session_kens');
+const sessionDir = path.join(__dirname, '../session_final_test');
 
 async function initSocket() {
   const baileys = await import('@whiskeysockets/baileys');
@@ -38,7 +38,9 @@ async function initSocket() {
       auth: state,
       version,
       logger: pino({ level: 'silent' }),
-      browser: Browsers.ubuntu('Chrome'), 
+      // GANTI JADI INI:
+      browser: Browsers.macOS('Desktop'), 
+      syncFullHistory: false, // Tambahkan ini biar enteng
       getMessage: async (key) => { return { conversation: '' }; }
     });
 
