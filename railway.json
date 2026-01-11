@@ -1,0 +1,19 @@
+{
+  "$schema": "https://railway.app/schema.json",
+  "build": {
+    "builder": "DOCKERFILE"
+  },
+  "deploy": {
+    "startCommand": "node src/index.js",
+    "restartPolicy": "always"
+  },
+  "env": {
+    "group": {
+      "upstream": {
+        "variables": {
+          "DATABASE_URL": ""
+        }
+      }
+    }
+  }
+}
