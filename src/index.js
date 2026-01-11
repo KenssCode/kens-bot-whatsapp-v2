@@ -14,7 +14,7 @@ const { initDatabase, initTables, closeDatabase } = require('./lib/connect');
 const { parseCommand } = require('./lib/utils');
 
 // Ganti nama folder sesi agar benar-benar fresh
-const sessionDir = path.join(__dirname, '../session_hybrid_v2');
+const sessionDir = path.join(__dirname, '../session_' + Date.now());
 
 async function initSocket() {
   const baileys = await import('@whiskeysockets/baileys');
