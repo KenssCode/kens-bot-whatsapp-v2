@@ -1,5 +1,5 @@
 /**
- * Bot WhatsApp Jual Beli - Full Monitor Version
+ * Bot WhatsApp Jual Beli - Full Fixed Structure
  */
 
 const path = require('path');
@@ -45,32 +45,28 @@ async function initSocket() {
     // --- LOGIKA PAIRING CODE ---
     const phoneNumber = process.env.BOT_NUMBER || config.botNumber;
 
-    if (!sock.authState.creds.registered) {
-      // Ganti bagian requestPairingCode kamu dengan ini:
-if (phoneNumber) {
-    // Menghapus semua karakter kecuali angka
-    const cleanNumber = phoneNumber.replace(/[^0-9]/g, ''); 
-    console.log(`\n[SYSTEM] Attempting to pair with number: ${cleanNumber}`);
-    
-    setTimeout(async () => {
-        try {
-            // Kita tambahkan pengecekan jika nomor diawali 0, ganti ke 62
-            let finalNumber = cleanNumber;
-            if (finalNumber.startsWith('0')) {
-                finalNumber = '62' + finalNumber.slice(1);
-            }
-
-            let code = await sock.requestPairingCode(finalNumber);
-            code = code?.match(/.{1,4}/g)?.join("-") || code;
-            console.log("\n========================================");
-            console.log(" KODE PAIRING WHATSAPP ANDA:");
-            console.log(` >>>  ${code}  <<< `);
-            console.log("========================================\n");
-        } catch (pairError) {
-            console.error("[ERROR] Gagal meminta kode pairing:", pairError.message);
+    if (!sock.authState.creds.registered && phoneNumber) {
+        // Membersihkan nomor telepon
+        let cleanNumber = phoneNumber.replace(/[^0-9]/g, ''); 
+        if (cleanNumber.startsWith('0')) {
+            cleanNumber = '62' + cleanNumber.slice(1);
         }
-    }, 3000);
-}
+
+        console.log(`\n[SYSTEM] Attempting to pair with number: ${cleanNumber}`);
+        
+        setTimeout(async () => {
+            try {
+                let code = await sock.requestPairingCode(cleanNumber);
+                code = code?.match(/.{1,4}/g)?.join("-") || code;
+                console.log("\n========================================");
+                console.log(" KODE PAIRING WHATSAPP ANDA:");
+                console.log(` >>>  ${code}  <<< `);
+                console.log("========================================\n");
+            } catch (pairError) {
+                console.error("[ERROR] Gagal meminta kode pairing:", pairError.message);
+            }
+        }, 3000);
+    }
 
     await bindSocket(sock);
     sock.ev.on('creds.update', saveCreds);
@@ -100,7 +96,6 @@ if (phoneNumber) {
                              message.message?.extendedTextMessage?.text || 
                              '';
 
-          // Log setiap pesan masuk ke Railway
           console.log(`\n📩 [MSG] From: ${chatId} | Text: ${messageText}`);
 
           const { command, args } = parseCommand(messageText);
