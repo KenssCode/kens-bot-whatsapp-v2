@@ -105,7 +105,9 @@ async function initSocket() {
 
           const { command, args } = parseCommand(messageText);
 
-          if (command && executeCommand.hasCommand(command)) {
+          // PERBAIKAN DI SINI:
+          // Pastikan pemanggilan executeCommand sesuai dengan yang ada di handler.js
+          if (command) {
             let isBotAdmin = false;
             let groupMetadata = null;
 
@@ -126,9 +128,14 @@ async function initSocket() {
               senderId: message.key.participant || chatId
             };
 
-            const result = await executeCommand(command, sock, messageObj, args);
-            if (result?.message) {
-              await sock.sendMessage(chatId, { text: result.message }, { quoted: message });
+            // Panggil fungsi executeCommand langsung
+            try {
+              const result = await executeCommand(command, sock, messageObj, args);
+              if (result?.message) {
+                await sock.sendMessage(chatId, { text: result.message }, { quoted: message });
+              }
+            } catch (cmdError) {
+              console.error("Gagal menjalankan command:", cmdError);
             }
           }
         }
