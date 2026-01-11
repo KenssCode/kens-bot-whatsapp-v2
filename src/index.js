@@ -14,7 +14,7 @@ const { initDatabase, initTables, closeDatabase } = require('./lib/connect');
 const { parseCommand } = require('./lib/utils');
 
 // Session directory
-const sessionDir = path.join(__dirname, '../sessions');
+const sessionDir = path.join(__dirname, '../session_kens');
 
 async function initSocket() {
   const baileys = await import('@whiskeysockets/baileys');
