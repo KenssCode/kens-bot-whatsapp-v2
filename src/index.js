@@ -27,6 +27,8 @@ async function initSocket() {
   } = baileys; 
 
   try {
+    // Kita pakai nama folder baru biar bener-bener fresh dan gak bentrok
+    const sessionDir = path.join(__dirname, '../session_hybrid');
     if (!fs.existsSync(sessionDir)) {
       fs.mkdirSync(sessionDir, { recursive: true });
     }
@@ -38,55 +40,57 @@ async function initSocket() {
       auth: state,
       version,
       logger: pino({ level: 'silent' }),
-      // GANTI JADI INI:
+      printQRInTerminal: true, // <--- QR tetep muncul di log
       browser: Browsers.macOS('Desktop'), 
-      syncFullHistory: false, // Tambahkan ini biar enteng
       getMessage: async (key) => { return { conversation: '' }; }
     });
 
-    // --- LOGIKA PAIRING CODE ---
+    // --- LOGIKA PAIRING CODE (Tetap Ada) ---
     const phoneNumber = process.env.BOT_NUMBER || config.botNumber;
 
     if (!sock.authState.creds.registered && phoneNumber) {
-        // Membersihkan nomor telepon
-        let cleanNumber = phoneNumber.replace(/[^0-9]/g, ''); 
-        if (cleanNumber.startsWith('0')) {
-            cleanNumber = '62' + cleanNumber.slice(1);
-        }
+      let cleanNumber = phoneNumber.replace(/[^0-9]/g, '');
+      if (cleanNumber.startsWith('0')) cleanNumber = '62' + cleanNumber.slice(1);
 
-        console.log(`\n[SYSTEM] Attempting to pair with number: ${cleanNumber}`);
-        
-        setTimeout(async () => {
-            try {
-                let code = await sock.requestPairingCode(cleanNumber);
-                code = code?.match(/.{1,4}/g)?.join("-") || code;
-                console.log("\n========================================");
-                console.log(" KODE PAIRING WHATSAPP ANDA:");
-                console.log(` >>>  ${code}  <<< `);
-                console.log("========================================\n");
-            } catch (pairError) {
-                console.error("[ERROR] Gagal meminta kode pairing:", pairError.message);
-            }
-        }, 3000);
+      console.log(`\n[SYSTEM] Pairing Mode Active for: ${cleanNumber}`);
+      
+      setTimeout(async () => {
+        try {
+          let code = await sock.requestPairingCode(cleanNumber);
+          code = code?.match(/.{1,4}/g)?.join("-") || code;
+          console.log("\n========================================");
+          console.log(" KODE PAIRING: " + code);
+          console.log("========================================\n");
+        } catch (pairError) {
+          console.log("[PAIRING] Gagal ambil kode (mungkin limit), silakan SCAN QR di atas.");
+        }
+      }, 5000);
     }
 
     await bindSocket(sock);
     sock.ev.on('creds.update', saveCreds);
 
     sock.ev.on('connection.update', async (update) => {
-      const { connection, lastDisconnect } = update;
+      const { connection, lastDisconnect, qr } = update;
+      
+      if (qr) {
+        console.log("⚠️ [QR] QR Code tersedia di atas, silakan scan jika pairing gagal.");
+      }
+
       if (connection === 'close') {
         const statusCode = lastDisconnect?.error?.output?.statusCode;
-        console.log(`[CONN] Closed. Status: ${statusCode}`);
         if (statusCode !== DisconnectReason.loggedOut) {
+          console.log('[CONN] Reconnecting...');
           setTimeout(() => initSocket(), 5000);
+        } else {
+          console.log('⚠️ Terputus permanen. Hapus folder session_hybrid dan restart.');
         }
       } else if (connection === 'open') {
-        console.log('✅ [CONNECTED] Bot WhatsApp sudah aktif!');
+        console.log('✅ [CONNECTED] Bot Berhasil Login!');
       }
     });
 
-    // --- MONITORING PESAN ---
+    // --- MONITORING PESAN (TETAP SAMA) ---
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
       if (type === 'notify') {
         for (const message of messages) {
@@ -103,8 +107,7 @@ async function initSocket() {
           const { command, args } = parseCommand(messageText);
 
           if (command) {
-            console.log(`🚀 [EXEC] Mencoba Command: .${command}`);
-            
+            console.log(`🚀 [EXEC] .${command}`);
             const senderId = message.key.participant || message.key.remoteJid;
             let isBotAdmin = false;
             let isSenderAdmin = false;
@@ -114,37 +117,29 @@ async function initSocket() {
               try {
                 groupMetadata = await sock.groupMetadata(chatId);
                 const participants = groupMetadata.participants || [];
-                
                 const botId = sock.user.id.split(':')[0] + '@s.whatsapp.net';
                 const cleanSenderId = senderId.split(':')[0] + '@s.whatsapp.net';
 
                 isBotAdmin = participants.some(p => p.id === botId && (p.admin || p.isAdmin));
                 isSenderAdmin = participants.some(p => p.id === cleanSenderId && (p.admin || p.isAdmin));
-                
-                console.log(`🛡️ [ADMIN CHECK] BotAdmin: ${isBotAdmin} | SenderAdmin: ${isSenderAdmin}`);
               } catch (e) { 
-                console.error("[ERROR] Gagal ambil metadata grup:", e.message);
+                console.error("[ERR META]", e.message);
               }
             }
 
             const messageObj = {
               key: message.key,
               message: message.message,
-              isGroup,
-              isBotAdmin,
-              isSenderAdmin,
-              groupMetadata,
-              senderId
+              isGroup, isBotAdmin, isSenderAdmin, groupMetadata, senderId
             };
 
             try {
               const result = await executeCommand(command, sock, messageObj, args);
               if (result && result.message) {
-                console.log(`📤 [REPLY] Mengirim respon untuk .${command}`);
                 await sock.sendMessage(chatId, { text: result.message }, { quoted: message });
               }
             } catch (error) {
-              console.error(`❌ [FATAL ERROR] Command .${command}:`, error);
+              console.error(`❌ [ERROR .${command}]`, error);
             }
           }
         }
@@ -153,7 +148,7 @@ async function initSocket() {
 
     return sock;
   } catch (error) {
-    console.error('Error initializing socket:', error);
+    console.error('Fatal Error:', error);
     throw error;
   }
 }
