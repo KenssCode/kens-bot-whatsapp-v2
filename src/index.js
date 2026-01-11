@@ -1,5 +1,5 @@
 /**
- * Bot WhatsApp Jual Beli - Pairing Code Mode
+ * Bot WhatsApp Jual Beli - Full Fixed (Pairing Mode & Admin Detection)
  */
 
 const path = require('path');
@@ -41,13 +41,11 @@ async function initSocket() {
       auth: state,
       version,
       logger: pino({ level: 'silent' }),
-      // Browser harus Chrome agar fitur Pairing Code muncul
       browser: Browsers.ubuntu('Chrome'), 
       getMessage: async (key) => { return { conversation: '' }; }
     });
 
     // --- LOGIKA PAIRING CODE ---
-    // Pastikan kamu sudah mengisi BOT_NUMBER di Variables Railway (contoh: 62812345678)
     const phoneNumber = process.env.BOT_NUMBER || config.botNumber;
 
     if (!sock.authState.creds.registered) {
@@ -66,8 +64,7 @@ async function initSocket() {
           }
         }, 3000);
       } else {
-        console.log("\n⚠️ BOT_NUMBER tidak ditemukan di environment variables!");
-        console.log("Silakan tambah variable BOT_NUMBER di Railway agar kode muncul.\n");
+        console.log("\n⚠️ BOT_NUMBER tidak ditemukan di environment variables Railway!");
       }
     }
 
@@ -85,14 +82,14 @@ async function initSocket() {
           console.log('Connection closed, reconnecting...');
           setTimeout(() => initSocket(), 5000);
         } else {
-          console.log('Terputus secara permanen. Hapus folder sessions dan restart.');
+          console.log('Terputus permanen. Hapus folder sessions di Railway dan restart.');
         }
       } else if (connection === 'open') {
         console.log('✅ Bot WhatsApp connected successfully!');
       }
     });
 
-// Handle Pesan
+    // Handle Pesan
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
       if (type === 'notify') {
         for (const message of messages) {
@@ -104,20 +101,28 @@ async function initSocket() {
                              message.message?.extendedTextMessage?.text || 
                              '';
 
-          // Ambil command & args
           const { command, args } = parseCommand(messageText);
 
-          // Jika ada command, langsung eksekusi tanpa hasCommand()
           if (command) {
+            const senderId = message.key.participant || message.key.remoteJid;
+            
             let isBotAdmin = false;
+            let isSenderAdmin = false;
             let groupMetadata = null;
 
             if (isGroup) {
               try {
                 groupMetadata = await sock.groupMetadata(chatId);
+                const participants = groupMetadata.participants || [];
+                
                 const botId = sock.user.id.split(':')[0] + '@s.whatsapp.net';
-                isBotAdmin = groupMetadata.participants.some(p => p.id === botId && p.admin);
-              } catch (e) { }
+                const cleanSenderId = senderId.split(':')[0] + '@s.whatsapp.net';
+
+                isBotAdmin = participants.some(p => p.id === botId && p.admin);
+                isSenderAdmin = participants.some(p => p.id === cleanSenderId && p.admin);
+              } catch (e) { 
+                console.error("Gagal ambil metadata grup:", e);
+              }
             }
 
             const messageObj = {
@@ -125,20 +130,18 @@ async function initSocket() {
               message: message.message,
               isGroup,
               isBotAdmin,
+              isSenderAdmin,
               groupMetadata,
-              senderId: message.key.participant || chatId
+              senderId
             };
 
-            // LANGSUNG PANGGIL FUNGSINYA
             try {
               const result = await executeCommand(command, sock, messageObj, args);
-              
-              // Kirim balasan jika ada pesan dari handler
               if (result && result.message) {
                 await sock.sendMessage(chatId, { text: result.message }, { quoted: message });
               }
             } catch (error) {
-              console.error(`Error saat menjalankan command ${command}:`, error);
+              console.error(`Error command ${command}:`, error);
             }
           }
         }
