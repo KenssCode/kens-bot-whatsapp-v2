@@ -8,11 +8,25 @@ async function getStoreInstance() {
   if (!store) {
     const baileys = await import('@whiskeysockets/baileys');
     
-    // Ini cara paling aman memanggil makeInMemoryStore di ESM
-    const makeInMemoryStore = baileys.default?.makeInMemoryStore || baileys.makeInMemoryStore;
+    // Logika pencarian fungsi yang lebih kuat
+    let makeInMemoryStore = baileys.makeInMemoryStore || 
+                            baileys.default?.makeInMemoryStore || 
+                            (baileys.default && baileys.default.default ? baileys.default.default.makeInMemoryStore : null);
     
+    // Jika masih gagal, kita ambil dari properti manapun yang bernama makeInMemoryStore
+    if (!makeInMemoryStore) {
+        const keys = Object.keys(baileys);
+        for (const key of keys) {
+            if (baileys[key]?.makeInMemoryStore) {
+                makeInMemoryStore = baileys[key].makeInMemoryStore;
+                break;
+            }
+        }
+    }
+
     if (typeof makeInMemoryStore !== 'function') {
-      throw new Error("Gagal mengambil fungsi makeInMemoryStore dari Baileys");
+      console.error("Struktur Baileys yang diterima:", Object.keys(baileys));
+      throw new Error("Gagal mengambil fungsi makeInMemoryStore dari Baileys. Pastikan versi library benar.");
     }
     
     store = makeInMemoryStore({ logger });
@@ -22,7 +36,9 @@ async function getStoreInstance() {
 
 async function bindSocket(sock) {
   const currentStore = await getStoreInstance();
-  currentStore.bind(sock.ev);
+  if (currentStore && typeof currentStore.bind === 'function') {
+    currentStore.bind(sock.ev);
+  }
 }
 
 module.exports = {
