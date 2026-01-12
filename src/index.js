@@ -1,5 +1,5 @@
 /**
- * Bot WhatsApp Jual Beli - Hybrid (Link QR & Pairing Code)
+ * Bot WhatsApp Jual Beli - Full Fixed Hybrid 2026
  */
 
 const path = require('path');
@@ -13,8 +13,9 @@ const { bindSocket } = require('./lib/store');
 const { initDatabase, initTables, closeDatabase } = require('./lib/connect');
 const { parseCommand } = require('./lib/utils');
 
-// Ganti nama folder sesi agar benar-benar fresh
-const sessionDir = path.join(__dirname, '../session_' + Date.now());
+// TARO DI SINI: Kita pakai ID unik biar Railway gak pake file sampah kemarin
+const sessionName = 'session_' + Date.now();
+const sessionDir = path.join(__dirname, '../', sessionName);
 
 async function initSocket() {
   const baileys = await import('@whiskeysockets/baileys');
@@ -40,6 +41,7 @@ async function initSocket() {
       logger: pino({ level: 'silent' }),
       browser: Browsers.macOS('Desktop'), 
       syncFullHistory: false,
+      connectTimeoutMs: 60000, // Tambah waktu tunggu koneksi
       getMessage: async (key) => { return { conversation: '' }; }
     });
 
@@ -60,7 +62,7 @@ async function initSocket() {
           console.log(" KODE PAIRING ANDA: " + code);
           console.log("========================================\n");
         } catch (pairError) {
-          console.log("[PAIRING] Limit atau error, silakan gunakan Link QR di bawah.");
+          console.log("[PAIRING] Limit/Error. TENANG, PAKAI LINK QR DI BAWAH!");
         }
       }, 7000);
     }
@@ -70,24 +72,26 @@ async function initSocket() {
 
     sock.ev.on('connection.update', async (update) => {
       const { connection, lastDisconnect, qr } = update;
-      
-      // --- LINK QR GENERATOR ---
+
       if (qr) {
         const qrLink = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(qr)}&size=500x500`;
         console.log("\n========================================");
-        console.log(" ⚠️ SCAN QR MELALUI LINK INI:");
+        console.log(" ⚠️ SCAN QR DI SINI: ");
         console.log(` ${qrLink}`);
         console.log("========================================\n");
       }
 
       if (connection === 'close') {
         const statusCode = lastDisconnect?.error?.output?.statusCode;
-        console.log(`[CONN] Terputus. Status: ${statusCode}`);
-        if (statusCode !== DisconnectReason.loggedOut) {
-          setTimeout(() => initSocket(), 5000);
+        // JANGAN RESTART kalau errornya 401 atau Logout
+        if (statusCode !== DisconnectReason.loggedOut && statusCode !== 401) {
+          console.log(`[CONN] Putus (Status: ${statusCode}), nyoba nyambung lagi dalam 10 detik...`);
+          setTimeout(() => initSocket(), 10000); 
+        } else {
+          console.log('⚠️ Sesi rusak/logout. Silakan ganti nama folder session di index.js dan scan ulang.');
         }
       } else if (connection === 'open') {
-        console.log('✅ [CONNECTED] Bot Berhasil Login!');
+        console.log('✅ BOT ONLINE & STABIL!');
       }
     });
 
