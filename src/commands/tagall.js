@@ -1,6 +1,6 @@
 /**
  * Command: .tagall
- * Mention all members with visible names
+ * Mention all members one by one with visible names
  */
 
 const { createInfoMessage, createWarningMessage } = require('../lib/utils');
@@ -28,29 +28,27 @@ module.exports = {
       const groupMetadata = await sock.groupMetadata(chatId);
       const participants = groupMetadata.participants || [];
       
-      // Get all member JIDs
-      const memberJids = participants.map(p => p.id);
-      
       // Get the message text (join all args)
       const messageText = args.join(' ') || '📌 Perhatian semua member!';
       
-      // Format the message with visible mentions
+      // Format the message with individual mentions
       let formattedMessage = `👥 *NOTIFIKASI DARI ADMIN*\n\n`;
       formattedMessage += `${messageText}\n\n`;
-      formattedMessage += `_Mention untuk semua member_\n\n`;
       
-      // Add individual mentions (visible)
+      // Add individual mentions one by one (each on new line)
       for (const participant of participants) {
         const jid = participant.id;
-        const number = jid.split('@')[0];
-        formattedMessage += `@${number} `;
+        formattedMessage += `@${jid}\n`;
       }
       
-      formattedMessage += `\n\n━━━━━━━━━━━━━━━━━━━━\n`;
-      formattedMessage += `Total: ${memberJids.length} member\n`;
+      formattedMessage += `\n━━━━━━━━━━━━━━━━━━━━\n`;
+      formattedMessage += `Total: ${participants.length} member\n`;
       formattedMessage += `━━━━━━━━━━━━━━━━━━━━`;
       
-      // Send with mentions (visible mentions - names will be shown)
+      // Get all member JIDs for mentions
+      const memberJids = participants.map(p => p.id);
+      
+      // Send with mentions (visible mentions)
       await sock.sendMessage(chatId, {
         text: formattedMessage,
         mentions: memberJids

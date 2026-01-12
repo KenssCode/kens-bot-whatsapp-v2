@@ -36,35 +36,6 @@ module.exports = {
         };
       }
 
-      // Get bot's JID
-      const botJid = sock.user?.id;
-      const participants = groupMetadata.participants || [];
-      
-      // Find bot in participants
-      let botIsAdmin = false;
-      const botParticipant = participants.find(p => 
-        p.id === botJid || 
-        p.id === sock.user?.id ||
-        (botJid && p.id?.includes(botJid.split('@')[0]))
-      );
-      
-      if (botParticipant) {
-        botIsAdmin = botParticipant.admin === 'admin' || 
-                     botParticipant.admin === 'superadmin' || 
-                     botParticipant.admin === true;
-      }
-      
-      console.log(`🔓 [OPEN] Bot JID: ${botJid}`);
-      console.log(`🔓 [OPEN] Bot participant:`, botParticipant);
-      console.log(`🔓 [OPEN] Bot is admin: ${botIsAdmin}`);
-      
-      if (!botIsAdmin) {
-        return { 
-          success: false, 
-          message: createWarningMessage('Bot harus menjadi admin untuk menggunakan command ini!') 
-        };
-      }
-
       console.log(`🔓 [OPEN] Attempting to open group: ${chatId}`);
 
       // Update group settings to allow all members to send messages

@@ -1,13 +1,13 @@
 /**
  * Command: .h (hidetag)
- * Mention all members with hidden text (mentions are blue but names not visible)
+ * Mention all members one by one with hidden text (names visible but clickable)
  */
 
 const { createInfoMessage, createWarningMessage } = require('../lib/utils');
 
 module.exports = {
   name: 'h',
-  description: ' Mention semua member (teks tersembunyi) ',
+  description: ' Mention semua member (nama terlihat, format tersembunyi) ',
   usage: '< pesan >',
   example: '.h Selamat datang semuanya!',
   onlyGroup: true,
@@ -28,20 +28,27 @@ module.exports = {
       const groupMetadata = await sock.groupMetadata(chatId);
       const participants = groupMetadata.participants || [];
       
-      // Get all member JIDs (not just admins)
-      const memberJids = participants.map(p => p.id);
-      
       // Get the message text (join all args)
       const messageText = args.join(' ') || '📌 Penting!';
       
-      // Format the message
+      // Format the message with individual mentions (similar to tagall)
       let formattedMessage = `🔔 *NOTIFIKASI GRUP*\n\n`;
       formattedMessage += `${messageText}\n\n`;
-      formattedMessage += `━━━━━━━━━━━━━━━━━━━━\n`;
-      formattedMessage += `Total: ${memberJids.length} member\n`;
+      
+      // Add individual mentions one by one
+      for (const participant of participants) {
+        const jid = participant.id;
+        formattedMessage += `@${jid}\n`;
+      }
+      
+      formattedMessage += `\n━━━━━━━━━━━━━━━━━━━━\n`;
+      formattedMessage += `Total: ${participants.length} member\n`;
       formattedMessage += `━━━━━━━━━━━━━━━━━━━━`;
       
-      // Send with mentions (hidden mentions - names won't be shown)
+      // Get all member JIDs for mentions
+      const memberJids = participants.map(p => p.id);
+      
+      // Send with mentions
       await sock.sendMessage(chatId, {
         text: formattedMessage,
         mentions: memberJids
