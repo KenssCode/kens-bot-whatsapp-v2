@@ -17,10 +17,12 @@ module.exports = {
                           `💰 *COIN*\n` +
                           `• Coin 1M = Rp 1.500\n\n` +
                           `👤 *AKUN*\n` +
-                          `• Polosan Ghostfinn = Rp 10.000\n` +
+                          `• Polosan Ghostfinn = Rp 13.000\n` +
                           `👤 *SECRET*\n` +
                           `• Kraken = Rp 4.000\n` +
                           `• Tumbal = Rp 1.800\n\n` +
+                          `👤 *DELTA LITE*\n` +
+                          `• PERMANENT / LIFETIME = Rp 15.000\n` +
                           `━━━━━━━━━━━━━━━━━━━━\n\n` +
                           `📞 *PEMBELIAN:*\n` +
                           `Chat Admin / .admin untuk order!`;
