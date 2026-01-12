@@ -121,13 +121,26 @@ async function initSocket() {
                 const participants = groupMetadata.participants || [];
                 const botId = sock.user.id.split(':')[0] + '@s.whatsapp.net';
 
-                isBotAdmin = participants.some(p => p.id === botId && (p.admin === 'admin' || p.admin === 'superadmin'));
+                // Improved admin detection for bot
+                isBotAdmin = participants.some(p => p.id === botId && (
+                  p.admin === 'admin' || 
+                  p.admin === 'superadmin' || 
+                  p.admin === true ||
+                  p.isAdmin === true
+                ));
                 
-                // Jika bukan owner, baru cek status admin asli di grup
+                // If not owner, check sender admin status
                 if (!isOwner) {
-                  isSenderAdmin = participants.some(p => p.id === cleanSender && (p.admin === 'admin' || p.admin === 'superadmin'));
+                  isSenderAdmin = participants.some(p => p.id === cleanSender && (
+                    p.admin === 'admin' || 
+                    p.admin === 'superadmin' || 
+                    p.admin === true ||
+                    p.isAdmin === true
+                  ));
                 }
-              } catch (e) { }
+              } catch (e) { 
+                console.error('Error checking admin:', e);
+              }
             }
 
             const messageObj = {
