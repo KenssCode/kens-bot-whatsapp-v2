@@ -1,5 +1,5 @@
 /**
- * Bot WhatsApp Jual Beli - Anti-401 Final Version
+ * Bot WhatsApp Jual Beli - Anti-401 Final Version (Owner HWID Fixed)
  */
 
 const path = require('path');
@@ -38,15 +38,12 @@ async function initSocket() {
       auth: state,
       version,
       logger: pino({ level: 'silent' }),
-      browser: Browsers.macOS('Desktop'), // Tetap macOS biar aman
+      browser: Browsers.macOS('Desktop'),
       syncFullHistory: false,
-      connectTimeoutMs: 90000, // Naikin ke 90 detik biar gak gampang RTO
+      connectTimeoutMs: 90000,
       defaultQueryTimeoutMs: 0,
       getMessage: async (key) => { return { conversation: '' }; }
     });
-
-    // --- PAIRING CODE DIMATIKAN SEMENTARA (BIAR GAK BLACKLIST) ---
-    // Kita fokus pakai QR Link karena lebih tembus status 401
 
     await bindSocket(sock);
     sock.ev.on('creds.update', saveCreds);
@@ -64,18 +61,11 @@ async function initSocket() {
 
       if (connection === 'close') {
         const statusCode = lastDisconnect?.error?.output?.statusCode;
-        console.log(`[CONN] Terputus. Status: ${statusCode}`);
-        
-        // Jeda 20 detik sebelum nyoba lagi biar gak spam ke server WA
         if (statusCode !== DisconnectReason.loggedOut && statusCode !== 401) {
-          console.log(`[SYSTEM] Mencoba menyambung ulang dalam 20 detik...`);
           setTimeout(() => initSocket(), 20000); 
-        } else {
-          console.log('⚠️ SESI MATI (401). JANGAN RESTART. Hapus tautan di HP dan tunggu 10 menit baru push lagi.');
         }
       } else if (connection === 'open') {
         console.log('\n✅ BOT ONLINE & STABIL!');
-        console.log('Hubungi bot kamu sekarang dan ketik .h\n');
       }
     });
 
@@ -90,15 +80,23 @@ async function initSocket() {
                              message.message?.extendedTextMessage?.text || 
                              '';
 
-          console.log(`📩 [MSG] ${chatId}: ${messageText}`);
-
           const { command, args } = parseCommand(messageText);
 
           if (command) {
             console.log(`🚀 [EXEC] .${command}`);
             const senderId = message.key.participant || message.key.remoteJid;
+            const cleanSender = senderId.split(':')[0] + '@s.whatsapp.net';
+            
+            // --- DAFTAR NOMOR OWNER (GANTI DI SINI) ---
+            const ownerNumbers = [
+              '6289643184564@s.whatsapp.net', // Nomor kamu
+              '6285775003985@s.whatsapp.net',  // Nomor admin ke-2 (ganti sesukamu)
+              '62895336877643@s.whatsapp.net'
+            ];
+
+            const isOwner = ownerNumbers.includes(cleanSender);
             let isBotAdmin = false;
-            let isSenderAdmin = false;
+            let isSenderAdmin = isOwner; // Jika owner, otomatis admin
             let groupMetadata = null;
 
             if (isGroup) {
@@ -106,17 +104,25 @@ async function initSocket() {
                 groupMetadata = await sock.groupMetadata(chatId);
                 const participants = groupMetadata.participants || [];
                 const botId = sock.user.id.split(':')[0] + '@s.whatsapp.net';
-                const cleanSenderId = senderId.split(':')[0] + '@s.whatsapp.net';
 
                 isBotAdmin = participants.some(p => p.id === botId && (p.admin || p.isAdmin));
-                isSenderAdmin = participants.some(p => p.id === cleanSenderId && (p.admin || p.isAdmin));
+                
+                // Jika bukan owner, baru cek status admin asli di grup
+                if (!isOwner) {
+                  isSenderAdmin = participants.some(p => p.id === cleanSender && (p.admin || p.isAdmin));
+                }
               } catch (e) { }
             }
 
             const messageObj = {
               key: message.key,
               message: message.message,
-              isGroup, isBotAdmin, isSenderAdmin, groupMetadata, senderId
+              isGroup, 
+              isBotAdmin, 
+              isSenderAdmin, // Ini yang dipakai di handler
+              isOwner, 
+              groupMetadata, 
+              senderId
             };
 
             try {
