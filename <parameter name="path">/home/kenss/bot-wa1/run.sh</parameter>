@@ -1,0 +1,5 @@
+<parameter name="content">#!/bin/bash
+cd /home/kenss/bot-wa1
+rm -rf session_permanen_bot
+node src/index.js
+</parameter>

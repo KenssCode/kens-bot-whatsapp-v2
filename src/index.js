@@ -90,15 +90,9 @@ async function initSocket() {
                              rawMessage?.imageMessage?.caption ||
                              '';
           
-          console.log(`\n📩 ====================================`);
-          console.log(`📩 [MSG] From: ${message.key.participant || chatId}`);
-          console.log(`📩 [MSG] IsGroup: ${isGroup}`);
-          console.log(`📩 [MSG] Text: "${messageText}"`);
-          console.log(`📩 [MSG] Type: ${Object.keys(rawMessage || {}).join(', ')}`);
+          console.log(`\n📩 [MSG] From: ${message.key.participant || chatId} | Text: "${messageText}"`);
           
           const { command, args } = parseCommand(messageText);
-          console.log(`📩 [PARSE] Command: "${command}", Args: ${JSON.stringify(args)}`);
-          console.log(`📩 ====================================\n`);
           
           // === AUTO REPLY FEATURE ===
           if (!command && messageText.trim() !== '' && isGroup) {
@@ -124,49 +118,76 @@ async function initSocket() {
             // --- DAFTAR NOMOR OWNER (GANTI DI SINI) ---
             const ownerNumbers = [
               '6289643184564@s.whatsapp.net', // Nomor kamu
-              '6285775003985@s.whatsapp.net',  // Nomor admin ke-2 (ganti sesukamu)
+              '6285775003985@s.whatsapp.net',  // Nomor admin ke-2
               '62895336877643@s.whatsapp.net'
             ];
 
             const isOwner = ownerNumbers.includes(cleanSender);
             let isBotAdmin = false;
-            let isSenderAdmin = isOwner; // Jika owner, otomatis admin
+            let isSenderAdmin = isOwner; // Owner otomatis admin
             let groupMetadata = null;
+
+            // Bot ID extraction
+            let botJid = null;
+            if (sock.user?.id) {
+              botJid = sock.user.id.includes(':') 
+                ? sock.user.id.split(':')[0] + '@s.whatsapp.net'
+                : sock.user.id;
+            }
+            
+            console.log(`🔐 [ADMIN] Bot: ${botJid} | Sender: ${cleanSender} | IsOwner: ${isOwner}`);
 
             if (isGroup) {
               try {
                 groupMetadata = await sock.groupMetadata(chatId);
                 const participants = groupMetadata.participants || [];
-                const botId = sock.user.id.split(':')[0] + '@s.whatsapp.net';
-
-                // Improved admin detection for bot
-                isBotAdmin = participants.some(p => p.id === botId && (
-                  p.admin === 'admin' || 
-                  p.admin === 'superadmin' || 
-                  p.admin === true ||
-                  p.isAdmin === true
-                ));
+                console.log(`🔐 [ADMIN] Participants count: ${participants.length}`);
                 
-                // If not owner, check sender admin status
-                if (!isOwner) {
-                  isSenderAdmin = participants.some(p => p.id === cleanSender && (
-                    p.admin === 'admin' || 
-                    p.admin === 'superadmin' || 
-                    p.admin === true ||
-                    p.isAdmin === true
-                  ));
+                // Check if bot is admin - check ALL participants for bot
+                if (botJid) {
+                  const botParticipant = participants.find(p => {
+                    return p.id === botJid || 
+                           p.id === sock.user?.id ||
+                           p.id?.startsWith(botJid.split('@')[0]);
+                  });
+                  
+                  if (botParticipant) {
+                    const adminStatus = botParticipant.admin;
+                    isBotAdmin = adminStatus === 'admin' || adminStatus === 'superadmin' || adminStatus === true;
+                    console.log(`🔐 [ADMIN] Bot found: ${botParticipant.id}, admin: ${adminStatus} → isBotAdmin: ${isBotAdmin}`);
+                  } else {
+                    console.log(`🔐 [ADMIN] Bot NOT found in group! Checking if it's the bot sending...`);
+                    // Maybe the bot is checking its own message? No, we skip fromMe already
+                  }
+                }
+                
+                // Check sender admin status (only if not owner)
+                if (!isOwner && cleanSender) {
+                  const senderParticipant = participants.find(p => {
+                    return p.id === cleanSender ||
+                           p.id === senderId ||
+                           p.id?.startsWith(cleanSender.split('@')[0]);
+                  });
+                  
+                  if (senderParticipant) {
+                    const senderAdminStatus = senderParticipant.admin;
+                    isSenderAdmin = senderAdminStatus === 'admin' || senderAdminStatus === 'superadmin' || senderAdminStatus === true;
+                    console.log(`🔐 [ADMIN] Sender: ${senderParticipant.id}, admin: ${senderAdminStatus} → isSenderAdmin: ${isSenderAdmin}`);
+                  }
                 }
               } catch (e) { 
-                console.error('Error checking admin:', e);
+                console.error('🔐 [ADMIN] Error:', e.message);
               }
             }
+
+            console.log(`🔐 [ADMIN] Final - isBotAdmin: ${isBotAdmin}, isSenderAdmin: ${isSenderAdmin}`);
 
             const messageObj = {
               key: message.key,
               message: message.message,
               isGroup, 
               isBotAdmin, 
-              isSenderAdmin, // Ini yang dipakai di handler
+              isSenderAdmin,
               isOwner, 
               groupMetadata, 
               senderId
