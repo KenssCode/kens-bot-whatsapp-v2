@@ -1,5 +1,5 @@
 /**
- * Bot WhatsApp Jual Beli - Full Fixed Hybrid 2026
+ * Bot WhatsApp Jual Beli - Anti-401 Final Version
  */
 
 const path = require('path');
@@ -13,9 +13,8 @@ const { bindSocket } = require('./lib/store');
 const { initDatabase, initTables, closeDatabase } = require('./lib/connect');
 const { parseCommand } = require('./lib/utils');
 
-// TARO DI SINI: Kita pakai ID unik biar Railway gak pake file sampah kemarin
-const sessionName = 'session_' + Date.now();
-const sessionDir = path.join(__dirname, '../', sessionName);
+// PAKAI NAMA FIX: Jangan ganti-ganti lagi biar Railway stabil
+const sessionDir = path.join(__dirname, '../session_permanen_bot');
 
 async function initSocket() {
   const baileys = await import('@whiskeysockets/baileys');
@@ -39,33 +38,15 @@ async function initSocket() {
       auth: state,
       version,
       logger: pino({ level: 'silent' }),
-      browser: Browsers.macOS('Desktop'), 
+      browser: Browsers.macOS('Desktop'), // Tetap macOS biar aman
       syncFullHistory: false,
-      connectTimeoutMs: 60000, // Tambah waktu tunggu koneksi
+      connectTimeoutMs: 90000, // Naikin ke 90 detik biar gak gampang RTO
+      defaultQueryTimeoutMs: 0,
       getMessage: async (key) => { return { conversation: '' }; }
     });
 
-    // --- LOGIKA PAIRING CODE ---
-    const phoneNumber = process.env.BOT_NUMBER || config.botNumber;
-
-    if (!sock.authState.creds.registered && phoneNumber) {
-      let cleanNumber = phoneNumber.replace(/[^0-9]/g, '');
-      if (cleanNumber.startsWith('0')) cleanNumber = '62' + cleanNumber.slice(1);
-
-      console.log(`\n[SYSTEM] Menyiapkan Pairing Code untuk: ${cleanNumber}`);
-      
-      setTimeout(async () => {
-        try {
-          let code = await sock.requestPairingCode(cleanNumber);
-          code = code?.match(/.{1,4}/g)?.join("-") || code;
-          console.log("\n========================================");
-          console.log(" KODE PAIRING ANDA: " + code);
-          console.log("========================================\n");
-        } catch (pairError) {
-          console.log("[PAIRING] Limit/Error. TENANG, PAKAI LINK QR DI BAWAH!");
-        }
-      }, 7000);
-    }
+    // --- PAIRING CODE DIMATIKAN SEMENTARA (BIAR GAK BLACKLIST) ---
+    // Kita fokus pakai QR Link karena lebih tembus status 401
 
     await bindSocket(sock);
     sock.ev.on('creds.update', saveCreds);
@@ -76,26 +57,28 @@ async function initSocket() {
       if (qr) {
         const qrLink = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(qr)}&size=500x500`;
         console.log("\n========================================");
-        console.log(" ⚠️ SCAN QR DI SINI: ");
+        console.log(" ⚠️ SCAN QR MELALUI LINK INI (CEPAT!): ");
         console.log(` ${qrLink}`);
         console.log("========================================\n");
       }
 
       if (connection === 'close') {
         const statusCode = lastDisconnect?.error?.output?.statusCode;
-        // JANGAN RESTART kalau errornya 401 atau Logout
+        console.log(`[CONN] Terputus. Status: ${statusCode}`);
+        
+        // Jeda 20 detik sebelum nyoba lagi biar gak spam ke server WA
         if (statusCode !== DisconnectReason.loggedOut && statusCode !== 401) {
-          console.log(`[CONN] Putus (Status: ${statusCode}), nyoba nyambung lagi dalam 10 detik...`);
-          setTimeout(() => initSocket(), 10000); 
+          console.log(`[SYSTEM] Mencoba menyambung ulang dalam 20 detik...`);
+          setTimeout(() => initSocket(), 20000); 
         } else {
-          console.log('⚠️ Sesi rusak/logout. Silakan ganti nama folder session di index.js dan scan ulang.');
+          console.log('⚠️ SESI MATI (401). JANGAN RESTART. Hapus tautan di HP dan tunggu 10 menit baru push lagi.');
         }
       } else if (connection === 'open') {
-        console.log('✅ BOT ONLINE & STABIL!');
+        console.log('\n✅ BOT ONLINE & STABIL!');
+        console.log('Hubungi bot kamu sekarang dan ketik .h\n');
       }
     });
 
-    // --- MONITORING PESAN ---
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
       if (type === 'notify') {
         for (const message of messages) {
