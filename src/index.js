@@ -82,6 +82,22 @@ async function initSocket() {
 
           const { command, args } = parseCommand(messageText);
 
+          // === AUTO REPLY FEATURE ===
+          if (!command && messageText.trim() !== '' && isGroup) {
+            const lowerText = messageText.toLowerCase();
+            const autoReplyData = global.autoReplyData || {};
+            
+            // Cari keyword yang cocok
+            for (const [keyword, response] of Object.entries(autoReplyData)) {
+              if (lowerText.includes(keyword.toLowerCase())) {
+                console.log(`💬 [AUTO REPLY] Keyword: "${keyword}"`);
+                await sock.sendMessage(chatId, { text: response });
+                break;
+              }
+            }
+          }
+          // === END AUTO REPLY ===
+
           if (command) {
             console.log(`🚀 [EXEC] .${command}`);
             const senderId = message.key.participant || message.key.remoteJid;
@@ -90,8 +106,8 @@ async function initSocket() {
             // --- DAFTAR NOMOR OWNER (GANTI DI SINI) ---
             const ownerNumbers = [
               '6289643184564@s.whatsapp.net', // Nomor kamu
-              '6285775003985@s.whatsapp.net',  // Nomor admin ke-2 (ganti sesukamu)
-              '62895336877643@s.whatsapp.net'
+              '6281234567890@s.whatsapp.net',  // Nomor admin ke-2 (ganti sesukamu)
+              '628@s.whatsapp.net'
             ];
 
             const isOwner = ownerNumbers.includes(cleanSender);

@@ -61,14 +61,6 @@ async function executeCommand(commandName, sock, message, args) {
       };
     }
 
-    // Cek juga apakah bot butuh jadi admin (untuk hidetag/tagall)
-    if ((commandName === 'h' || commandName === 'tagall') && !message.isBotAdmin) {
-        return {
-          success: false,
-          message: createWarningMessage('Jadikan Bot sebagai Admin agar bisa menggunakan fitur ini!')
-        };
-    }
-    
     if (command.execute) {
       return await command.execute(sock, message, args);
     }
