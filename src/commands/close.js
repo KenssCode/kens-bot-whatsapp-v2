@@ -42,10 +42,20 @@ module.exports = {
       // 'announcement' = only admins can send messages
       await sock.groupSettingUpdate(chatId, 'announcement');
       
-      // Confirm success
+      // Check if this command is a reply to another message
+      const quotedMessage = message.message?.extendedTextMessage?.contextInfo?.quotedMessage;
+      
+      // Prepare options
       const successMessage = createSuccessMessage(`Berhasil menutup grup "${groupName}"!\n\nHanya admin yang dapat mengirim pesan sekarang.\n\nGunakan .open untuk membuka grup kembali.`);
       
-      await sock.sendMessage(chatId, { text: successMessage });
+      const options = { text: successMessage };
+      
+      // If replying to a message, include the quoted message
+      if (quotedMessage) {
+        options.quoted = message.key;
+      }
+      
+      await sock.sendMessage(chatId, options);
       
       console.log(`🔒 [CLOSE] Group ${chatId} is now restricted to admins only`);
       

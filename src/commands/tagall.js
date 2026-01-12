@@ -1,9 +1,12 @@
 /**
  * Command: .tagall
  * Mention all members one by one with visible names
+ * Handles large groups by splitting into multiple messages
  */
 
 const { createInfoMessage, createWarningMessage } = require('../lib/utils');
+
+const MAX_MENTIONS_PER_MESSAGE = 80; // Buffer for text content
 
 module.exports = {
   name: 'tagall',
@@ -28,31 +31,71 @@ module.exports = {
       const groupMetadata = await sock.groupMetadata(chatId);
       const participants = groupMetadata.participants || [];
       
+      // Filter out @lid JIDs and get valid member JIDs
+      const validParticipants = participants.filter(p => !p.id && !p.id.includes('@lid'));
+      const memberJids = validParticipants.map(p => p.id);
+      
       // Get the message text (join all args)
       const messageText = args.join(' ') || '📌 Perhatian semua member!';
       
-      // Format the message with individual mentions
-      let formattedMessage = `👥 *NOTIFIKASI DARI ADMIN*\n\n`;
-      formattedMessage += `${messageText}\n\n`;
+      // Check if this command is a reply to another message
+      const quotedMessage = message.message?.extendedTextMessage?.contextInfo?.quotedMessage;
+      const options = quotedMessage ? { quoted: message.key } : {};
       
-      // Add individual mentions one by one (each on new line)
-      for (const participant of participants) {
-        const jid = participant.id;
-        formattedMessage += `@${jid}\n`;
+      // If group is small, send in one message
+      if (memberJids.length <= MAX_MENTIONS_PER_MESSAGE) {
+        let formattedMessage = `👥 *NOTIFIKASI DARI ADMIN*\n\n`;
+        formattedMessage += `${messageText}\n\n`;
+        
+        // Add individual mentions one by one
+        for (const participant of validParticipants) {
+          const jid = participant.id;
+          formattedMessage += `@${jid}\n`;
+        }
+        
+        formattedMessage += `\n━━━━━━━━━━━━━━━━━━━━\n`;
+        formattedMessage += `Total: ${validParticipants.length} member\n`;
+        formattedMessage += `━━━━━━━━━━━━━━━━━━━━`;
+        
+        options.text = formattedMessage;
+        options.mentions = memberJids;
+        
+        await sock.sendMessage(chatId, options);
+        return { success: true };
       }
       
-      formattedMessage += `\n━━━━━━━━━━━━━━━━━━━━\n`;
-      formattedMessage += `Total: ${participants.length} member\n`;
-      formattedMessage += `━━━━━━━━━━━━━━━━━━━━`;
+      // Group is too large, send in multiple messages
+      console.log(`🔔 [TAGALL] Group has ${memberJids.length} members, splitting into multiple messages`);
       
-      // Get all member JIDs for mentions
-      const memberJids = participants.map(p => p.id);
+      // Send initial message
+      const introMessage = `👥 *NOTIFIKASI DARI ADMIN*\n\n${messageText}\n\n_mention untuk ${memberJids.length} member_`;
+      await sock.sendMessage(chatId, { text: introMessage, ...options });
       
-      // Send with mentions (visible mentions)
-      await sock.sendMessage(chatId, {
-        text: formattedMessage,
-        mentions: memberJids
-      });
+      // Split mentions into chunks
+      const chunks = [];
+      for (let i = 0; i < memberJids.length; i += MAX_MENTIONS_PER_MESSAGE) {
+        chunks.push(memberJids.slice(i, i + MAX_MENTIONS_PER_MESSAGE));
+      }
+      
+      // Send each chunk
+      for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i];
+        let chunkMessage = `\n`;
+        
+        for (const jid of chunk) {
+          chunkMessage += `@${jid}\n`;
+        }
+        
+        const footer = `\n━━━━━━━━━━━━━━━━━━━━\n(${i + 1}/${chunks.length}) - Total: ${memberJids.length} member\n━━━━━━━━━━━━━━━━━━━━`;
+        
+        await sock.sendMessage(chatId, {
+          text: chunkMessage + footer,
+          mentions: chunk
+        });
+        
+        // Small delay between messages to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
       
       return { success: true };
     } catch (error) {

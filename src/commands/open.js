@@ -42,10 +42,20 @@ module.exports = {
       // 'not_announcement' = all members can send messages
       await sock.groupSettingUpdate(chatId, 'not_announcement');
       
-      // Confirm success
+      // Check if this command is a reply to another message
+      const quotedMessage = message.message?.extendedTextMessage?.contextInfo?.quotedMessage;
+      
+      // Prepare options
       const successMessage = createSuccessMessage(`Berhasil membuka grup "${groupName}"!\n\nSemua member dapat mengirim pesan sekarang.\n\nGunakan .close untuk menutup grup kembali.`);
       
-      await sock.sendMessage(chatId, { text: successMessage });
+      const options = { text: successMessage };
+      
+      // If replying to a message, include the quoted message
+      if (quotedMessage) {
+        options.quoted = message.key;
+      }
+      
+      await sock.sendMessage(chatId, options);
       
       console.log(`🔓 [OPEN] Group ${chatId} is now open for all members`);
       
