@@ -106,8 +106,8 @@ async function initSocket() {
             // --- DAFTAR NOMOR OWNER (GANTI DI SINI) ---
             const ownerNumbers = [
               '6289643184564@s.whatsapp.net', // Nomor kamu
-              '6281234567890@s.whatsapp.net',  // Nomor admin ke-2 (ganti sesukamu)
-              '628@s.whatsapp.net'
+              '6285775003985@s.whatsapp.net',  // Nomor admin ke-2 (ganti sesukamu)
+              '62895336877643@s.whatsapp.net'
             ];
 
             const isOwner = ownerNumbers.includes(cleanSender);
@@ -121,11 +121,11 @@ async function initSocket() {
                 const participants = groupMetadata.participants || [];
                 const botId = sock.user.id.split(':')[0] + '@s.whatsapp.net';
 
-                isBotAdmin = participants.some(p => p.id === botId && (p.admin || p.isAdmin));
+                isBotAdmin = participants.some(p => p.id === botId && (p.admin === 'admin' || p.admin === 'superadmin'));
                 
                 // Jika bukan owner, baru cek status admin asli di grup
                 if (!isOwner) {
-                  isSenderAdmin = participants.some(p => p.id === cleanSender && (p.admin || p.isAdmin));
+                  isSenderAdmin = participants.some(p => p.id === cleanSender && (p.admin === 'admin' || p.admin === 'superadmin'));
                 }
               } catch (e) { }
             }
