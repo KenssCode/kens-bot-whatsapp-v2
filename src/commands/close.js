@@ -7,7 +7,7 @@ const { createInfoMessage, createWarningMessage, createSuccessMessage } = requir
 
 module.exports = {
   name: 'close',
-  description: ' Grup di Tutup ( Semua Admin Offline ) ',
+  description: ' Tutup grup (hanya admin yang bisa kirim pesan) ',
   usage: '',
   example: '.close',
   onlyGroup: true,
@@ -24,14 +24,6 @@ module.exports = {
         };
       }
 
-      // Check if bot is admin (required to change group settings)
-      if (!message.isBotAdmin) {
-        return { 
-          success: false, 
-          message: createWarningMessage('Bot harus menjadi admin untuk menggunakan command ini!') 
-        };
-      }
-
       // Get group metadata
       const groupMetadata = await sock.groupMetadata(chatId);
       const groupName = groupMetadata.subject || ' grup ini';
@@ -44,7 +36,39 @@ module.exports = {
         };
       }
 
+      // Get bot's JID
+      const botJid = sock.user?.id;
+      const participants = groupMetadata.participants || [];
+      
+      // Find bot in participants
+      let botIsAdmin = false;
+      const botParticipant = participants.find(p => 
+        p.id === botJid || 
+        p.id === sock.user?.id ||
+        (botJid && p.id?.includes(botJid.split('@')[0]))
+      );
+      
+      if (botParticipant) {
+        botIsAdmin = botParticipant.admin === 'admin' || 
+                     botParticipant.admin === 'superadmin' || 
+                     botParticipant.admin === true;
+      }
+      
+      console.log(`🔒 [CLOSE] Bot JID: ${botJid}`);
+      console.log(`🔒 [CLOSE] Bot participant:`, botParticipant);
+      console.log(`🔒 [CLOSE] Bot is admin: ${botIsAdmin}`);
+      
+      if (!botIsAdmin) {
+        return { 
+          success: false, 
+          message: createWarningMessage('Bot harus menjadi admin untuk menggunakan command ini!') 
+        };
+      }
+
+      console.log(`🔒 [CLOSE] Attempting to close group: ${chatId}`);
+
       // Update group settings to only allow admins to send messages
+      // 'announcement' = only admins can send messages
       await sock.groupSettingUpdate(chatId, 'announcement');
       
       // Confirm success
@@ -59,7 +83,7 @@ module.exports = {
       console.error('Error in close command:', error);
       return { 
         success: false, 
-        message: 'Gagal menutup grup. Pastikan Bot memiliki izin untuk mengubah pengaturan grup!' 
+        message: `Gagal menutup grup: ${error.message}` 
       };
     }
   }
