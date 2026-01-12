@@ -72,16 +72,34 @@ async function initSocket() {
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
       if (type === 'notify') {
         for (const message of messages) {
-          if (message.key.fromMe || !message.message) continue;
+          // Skip pesan dari bot sendiri
+          if (message.key.fromMe) continue;
+          // Skip jika tidak ada message object
+          if (!message.message) {
+            console.log('📩 [SKIP] No message object');
+            continue;
+          }
 
           const chatId = message.key.remoteJid;
           const isGroup = chatId.endsWith('@g.us');
-          const messageText = message.message?.conversation || 
-                             message.message?.extendedTextMessage?.text || 
+          
+          // Debug: log semua pesan masuk
+          const rawMessage = message.message;
+          const messageText = rawMessage?.conversation || 
+                             rawMessage?.extendedTextMessage?.text || 
+                             rawMessage?.imageMessage?.caption ||
                              '';
-
+          
+          console.log(`\n📩 ====================================`);
+          console.log(`📩 [MSG] From: ${message.key.participant || chatId}`);
+          console.log(`📩 [MSG] IsGroup: ${isGroup}`);
+          console.log(`📩 [MSG] Text: "${messageText}"`);
+          console.log(`📩 [MSG] Type: ${Object.keys(rawMessage || {}).join(', ')}`);
+          
           const { command, args } = parseCommand(messageText);
-
+          console.log(`📩 [PARSE] Command: "${command}", Args: ${JSON.stringify(args)}`);
+          console.log(`📩 ====================================\n`);
+          
           // === AUTO REPLY FEATURE ===
           if (!command && messageText.trim() !== '' && isGroup) {
             const lowerText = messageText.toLowerCase();
@@ -90,7 +108,7 @@ async function initSocket() {
             // Cari keyword yang cocok
             for (const [keyword, response] of Object.entries(autoReplyData)) {
               if (lowerText.includes(keyword.toLowerCase())) {
-                console.log(`💬 [AUTO REPLY] Keyword: "${keyword}"`);
+                console.log(`💬 [AUTO REPLY] Match: "${keyword}" → "${response}"`);
                 await sock.sendMessage(chatId, { text: response });
                 break;
               }
