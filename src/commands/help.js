@@ -9,8 +9,8 @@ const config = require('../config/config');
 
 module.exports = {
   name: 'help',
-  description: 'Menampilkan daftar command bot atau info command tertentu',
-  usage: '[nama_command]',
+  description: ' Faftar command bot atau info command tertentu ',
+  usage: '[ Nama Command ]',
   example: '',
   async execute(sock, message, args) {
     try {

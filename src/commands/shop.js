@@ -17,12 +17,13 @@ module.exports = {
                           `💰 *COIN*\n` +
                           `• Coin 1M = Rp 1.500\n\n` +
                           `👤 *AKUN*\n` +
-                          `• Akun Ghostfinn = Rp 10.000\n` +
-                          `• Akun Kraken = Rp 4.000\n` +
-                          `• Akun Tumbal = Rp 1.800\n\n` +
+                          `• Polosan Ghostfinn = Rp 10.000\n` +
+                          `👤 *SECRET*\n` +
+                          `• Kraken = Rp 4.000\n` +
+                          `• Tumbal = Rp 1.800\n\n` +
                           `━━━━━━━━━━━━━━━━━━━━\n\n` +
                           `📞 *PEMBELIAN:*\n` +
-                          `Chat owner untuk order!`;
+                          `Chat Admin / .admin untuk order!`;
       
       return { success: true, message: shopMessage };
     } catch (error) {

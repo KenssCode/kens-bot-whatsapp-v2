@@ -18,7 +18,7 @@ module.exports = {
         success: true, 
         message: `📢 *CHANNEL TESTIMONI* 📢\n\n` +
                  `Klik link di bawah untuk melihat testimoni:\n\n` +
-                 `🔗 https://whatsapp.com/channel/0029VAg9lfI0TIvZV86RhY3X\n\n` +
+                 `🔗 https://whatsapp.com/channel/0029VbCO2Vb7IUYZTM8prZ2o\n\n` +
                  `📌 Pastikan sudah join channel ya!` 
       };
     } catch (error) {

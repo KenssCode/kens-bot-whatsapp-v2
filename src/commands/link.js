@@ -5,7 +5,7 @@
 
 module.exports = {
   name: 'link',
-  description: 'Menampilkan link invite grup',
+  description: ' Menampilkan link invite grup ',
   usage: '',
   example: '',
   onlyGroup: true,

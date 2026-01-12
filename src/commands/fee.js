@@ -8,8 +8,8 @@ const { formatCurrency, createInfoMessage } = require('../lib/utils');
 
 module.exports = {
   name: 'fee',
-  description: 'Menampilkan informasi biaya rekber (fee)',
-  usage: '[jumlah_transaksi]',
+  description: ' Informasi biaya (fee) ',
+  usage: '[ Jumlah Transaksi ]',
   example: '150000',
   async execute(sock, message, args) {
     try {

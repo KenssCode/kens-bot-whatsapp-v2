@@ -7,7 +7,7 @@ const config = require('../config/config');
 
 module.exports = {
   name: 'autoreply',
-  description: 'Mengelola auto reply (Admin Only)',
+  description: ' Auto reply (Admin Only) ',
   usage: '<add|list|del> <kata_kunci> <balasan>',
   example: '.autoreply add halo hai juga',
   onlyGroup: true,

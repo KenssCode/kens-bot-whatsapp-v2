@@ -5,7 +5,7 @@ const { createInfoMessage, createWarningMessage } = require('../lib/utils');
 
 module.exports = {
   name: 'admin',
-  description: 'Menampilkan daftar admin di grup',
+  description: ' Daftar admin di grup ',
   usage: '',
   example: '.admin',
   async execute(sock, message, args) {

@@ -113,7 +113,23 @@ async function initSocket() {
           if (command) {
             console.log(`🚀 [EXEC] .${command}`);
             const senderId = message.key.participant || message.key.remoteJid;
-            const cleanSender = senderId.split(':')[0] + '@s.whatsapp.net';
+            
+            // Helper function untuk normalisasi JID
+            function normalizeJid(jid) {
+              if (!jid) return null;
+              // Jika sudah format yang benar
+              if (jid.endsWith('@s.whatsapp.net')) return jid;
+              if (jid.endsWith('@lid')) return jid;
+              // Jika mengandung ':' (device format), ambil bagian number saja
+              if (jid.includes(':')) {
+                const num = jid.split(':')[0];
+                return num + '@s.whatsapp.net';
+              }
+              // Default: asumsikan sudah format number, convert ke wa.net
+              return jid.replace(/@.+$/, '') + '@s.whatsapp.net';
+            }
+
+            const cleanSender = normalizeJid(senderId);
             
             // --- DAFTAR NOMOR OWNER (GANTI DI SINI) ---
             const ownerNumbers = [
@@ -127,15 +143,19 @@ async function initSocket() {
             let isSenderAdmin = isOwner; // Owner otomatis admin
             let groupMetadata = null;
 
-            // Bot ID extraction
+            // Bot ID extraction - handle multiple formats
             let botJid = null;
+            let botLid = null;
             if (sock.user?.id) {
-              botJid = sock.user.id.includes(':') 
-                ? sock.user.id.split(':')[0] + '@s.whatsapp.net'
-                : sock.user.id;
+              // Bot bisa punya LID dan regular JID
+              botJid = normalizeJid(sock.user.id);
+              // Simpan juga format asli untuk perbandingan
+              botLid = sock.user.id;
             }
             
-            console.log(`🔐 [ADMIN] Bot: ${botJid} | Sender: ${cleanSender} | IsOwner: ${isOwner}`);
+            console.log(`🔐 [ADMIN] Bot JID: ${botJid} | Bot LID: ${botLid}`);
+            console.log(`🔐 [ADMIN] Sender raw: ${senderId} | Sender clean: ${cleanSender}`);
+            console.log(`🔐 [ADMIN] IsOwner: ${isOwner}`);
 
             if (isGroup) {
               try {
@@ -144,11 +164,12 @@ async function initSocket() {
                 console.log(`🔐 [ADMIN] Participants count: ${participants.length}`);
                 
                 // Check if bot is admin - check ALL participants for bot
-                if (botJid) {
+                if (botJid || botLid) {
                   const botParticipant = participants.find(p => {
                     return p.id === botJid || 
+                           p.id === botLid ||
                            p.id === sock.user?.id ||
-                           p.id?.startsWith(botJid.split('@')[0]);
+                           (botJid && p.id?.startsWith(botJid.split('@')[0]));
                   });
                   
                   if (botParticipant) {
@@ -156,8 +177,9 @@ async function initSocket() {
                     isBotAdmin = adminStatus === 'admin' || adminStatus === 'superadmin' || adminStatus === true;
                     console.log(`🔐 [ADMIN] Bot found: ${botParticipant.id}, admin: ${adminStatus} → isBotAdmin: ${isBotAdmin}`);
                   } else {
-                    console.log(`🔐 [ADMIN] Bot NOT found in group! Checking if it's the bot sending...`);
-                    // Maybe the bot is checking its own message? No, we skip fromMe already
+                    console.log(`🔐 [ADMIN] Bot NOT found in participants! Bot JID: ${botJid}`);
+                    // Debug: show first few participants
+                    console.log(`🔐 [ADMIN] Sample participants:`, participants.slice(0, 3).map(p => ({ id: p.id, admin: p.admin })));
                   }
                 }
                 
@@ -166,13 +188,16 @@ async function initSocket() {
                   const senderParticipant = participants.find(p => {
                     return p.id === cleanSender ||
                            p.id === senderId ||
-                           p.id?.startsWith(cleanSender.split('@')[0]);
+                           p.id === botLid ||
+                           (cleanSender && p.id?.startsWith(cleanSender.split('@')[0]));
                   });
                   
                   if (senderParticipant) {
                     const senderAdminStatus = senderParticipant.admin;
                     isSenderAdmin = senderAdminStatus === 'admin' || senderAdminStatus === 'superadmin' || senderAdminStatus === true;
-                    console.log(`🔐 [ADMIN] Sender: ${senderParticipant.id}, admin: ${senderAdminStatus} → isSenderAdmin: ${isSenderAdmin}`);
+                    console.log(`🔐 [ADMIN] Sender found: ${senderParticipant.id}, admin: ${senderAdminStatus} → isSenderAdmin: ${isSenderAdmin}`);
+                  } else {
+                    console.log(`🔐 [ADMIN] Sender NOT found in participants! CleanSender: ${cleanSender}`);
                   }
                 }
               } catch (e) { 
