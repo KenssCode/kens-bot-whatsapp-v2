@@ -22,7 +22,7 @@ function loadCommands() {
     const command = require(commandPath);
     if (command.name) {
       commands.set(command.name, command);
-      console.log(`Loaded command: .${command.name}`);
+      console.log(`✅ Loaded command: .${command.name}`);
     }
   });
 }
@@ -45,6 +45,7 @@ async function executeCommand(commandName, sock, message, args) {
   if (!command) return null; // Abaikan jika bukan command
   
   try {
+    // Cek jika hanya untuk grup
     if (command.onlyGroup && !message.isGroup) {
       return {
         success: false,
@@ -52,8 +53,7 @@ async function executeCommand(commandName, sock, message, args) {
       };
     }
     
-    // --- PERBAIKAN LOGIKA ADMIN DI SINI ---
-    // Cek apakah command butuh admin, DAN apakah si pengirim BUKAN admin
+    // Cek jika butuh admin (LOGIKA UTAMA)
     if (command.requireAdmin && !message.isSenderAdmin) {
       return {
         success: false,
@@ -61,6 +61,7 @@ async function executeCommand(commandName, sock, message, args) {
       };
     }
 
+    // Eksekusi command
     if (command.execute) {
       return await command.execute(sock, message, args);
     }
@@ -70,36 +71,45 @@ async function executeCommand(commandName, sock, message, args) {
     console.error(`Error executing command .${commandName}:`, error);
     return {
       success: false,
-      message: createErrorMessage(error)
+      message: createErrorMessage(`Terjadi kesalahan: ${error.message}`)
     };
   }
 }
 
-// Fungsi lain (generateHelpText, dll) tetap sama
 function generateHelpText() {
   let helpText = `📋 *DAFTAR COMMAND BOT* 📋\n\n`;
-  helpText += `Prefix: ${config.commandPrefix}\n`;
-  helpText += `Bot: ${config.groupName}\n\n`;
   helpText += `━━━━━━━━━━━━━━━━━━━━\n\n`;
-  commands.forEach(command => {
+  
+  const allCommands = getAllCommands();
+  
+  // Urutkan command secara alfabetis
+  allCommands.sort((a, b) => a.name.localeCompare(b.name));
+  
+  allCommands.forEach(command => {
     const usage = command.usage || '';
     const description = command.description || 'Tidak ada deskripsi';
-    const onlyAdmin = command.requireAdmin ? ' (Admin Only)' : '';
-    helpText += `${config.commandPrefix}${command.name} ${usage}\n`;
+    const onlyAdmin = command.requireAdmin ? ' 🔒' : '';
+    helpText += `*.${command.name}* ${usage}\n`;
     helpText += `└─ ${description}${onlyAdmin}\n\n`;
   });
+  
   helpText += `━━━━━━━━━━━━━━━━━━━━\n`;
-  helpText += `Bot Online 24 Jam | 🚀`;
+  helpText += `Prefix: ${config.commandPrefix || '.'}\n`;
+  helpText += `Total: ${allCommands.length} command\n`;
   return helpText;
 }
 
 function getCommandHelp(commandName) {
   const command = getCommand(commandName);
   if (!command) return `Command .${commandName} tidak ditemukan.`;
+  
   let helpText = `📖 *BANTUAN COMMAND: .${commandName}* 📖\n\n`;
-  if (command.description) helpText += `*Deskripsi:*\n${command.description}\n\n`;
-  if (command.usage) helpText += `*Penggunaan:*\n${config.commandPrefix}${command.name} ${command.usage}\n\n`;
-  if (command.requireAdmin) helpText += `*Mode:* Admin Only\n\n`;
+  if (command.description) helpText += `*Deskripsi:* ${command.description}\n\n`;
+  if (command.usage) helpText += `*Penggunaan:* ${config.commandPrefix}${command.name} ${command.usage}\n\n`;
+  if (command.example) helpText += `*Contoh:* ${command.example}\n\n`;
+  if (command.requireAdmin) helpText += `*Hak Akses:* Admin Grup 🔒\n`;
+  if (command.onlyGroup) helpText += `*Lokasi:* Hanya di Grup\n`;
+  
   return helpText;
 }
 
