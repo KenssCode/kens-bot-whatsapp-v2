@@ -1,6 +1,6 @@
 /**
  * Bot WhatsApp Jual Beli - Anti-401 Final Version (Owner HWID Fixed)
- * + ANTI-LINK SYSTEM INTEGRATION
+ * + ANTI-LINK SYSTEM INTEGRATION - FIXED VERSION
  */
 
 const path = require('path');
@@ -13,9 +13,6 @@ const { loadCommands, executeCommand } = require('./lib/handler');
 const { bindSocket } = require('./lib/store');
 const { initDatabase, initTables, closeDatabase } = require('./lib/connect');
 const { parseCommand } = require('./lib/utils');
-
-// Import Anti-Link System
-const antiLinkModule = require('./commands/antilink'); // Pastikan path ini sesuai
 
 // PAKAI NAMA FIX: Jangan ganti-ganti lagi biar Railway stabil
 const sessionDir = path.join(__dirname, '../session_permanen_bot');
@@ -53,6 +50,7 @@ async function initSocket() {
     sock.ev.on('creds.update', saveCreds);
 
     // ========== INISIALISASI ANTI-LINK SYSTEM ==========
+    const antiLinkModule = require('./commands/antilink'); // Load di sini
     if (typeof antiLinkModule.setup === 'function') {
       antiLinkModule.setup(sock);
       console.log('🛡️ [ANTI-LINK] System diaktifkan');
@@ -105,11 +103,6 @@ async function initSocket() {
                              '';
           
           console.log(`\n📩 [MSG] From: ${message.key.participant || chatId} | Text: "${messageText}"`);
-          
-          // ========== ANTI-LINK DETECTION (RUN BEFORE COMMAND) ==========
-          // Biarkan sistem anti-link bekerja terlebih dahulu
-          // Sistem anti-link sudah di-handle oleh setup function
-          // ========== END ANTI-LINK DETECTION ==========
           
           const { command, args } = parseCommand(messageText);
           
@@ -269,16 +262,8 @@ async function main() {
       console.log('⚠️ Database table init error:', e.message);
     }
     
-    // Load commands termasuk anti-link
+    // Load commands (anti-link sudah termasuk di dalamnya)
     loadCommands();
-    
-    // Register additional anti-link command jika ada
-    if (antiLinkModule.resetViolations) {
-      const { getCommands } = require('./lib/handler');
-      const commands = getCommands();
-      commands.set('resetviolations', antiLinkModule.resetViolations);
-      console.log('🛡️ [ANTI-LINK] Command resetviolations registered');
-    }
     
     await initSocket();
   } catch (error) {
