@@ -1,5 +1,6 @@
 /**
  * Bot WhatsApp Jual Beli - Anti-401 Final Version (Owner HWID Fixed)
+ * + ANTI-LINK SYSTEM INTEGRATION
  */
 
 const path = require('path');
@@ -12,6 +13,9 @@ const { loadCommands, executeCommand } = require('./lib/handler');
 const { bindSocket } = require('./lib/store');
 const { initDatabase, initTables, closeDatabase } = require('./lib/connect');
 const { parseCommand } = require('./lib/utils');
+
+// Import Anti-Link System
+const antiLinkModule = require('./commands/antilink'); // Pastikan path ini sesuai
 
 // PAKAI NAMA FIX: Jangan ganti-ganti lagi biar Railway stabil
 const sessionDir = path.join(__dirname, '../session_permanen_bot');
@@ -48,6 +52,15 @@ async function initSocket() {
     await bindSocket(sock);
     sock.ev.on('creds.update', saveCreds);
 
+    // ========== INISIALISASI ANTI-LINK SYSTEM ==========
+    if (typeof antiLinkModule.setup === 'function') {
+      antiLinkModule.setup(sock);
+      console.log('🛡️ [ANTI-LINK] System diaktifkan');
+    } else {
+      console.log('⚠️ [ANTI-LINK] Setup function tidak ditemukan');
+    }
+    // ========== END ANTI-LINK SYSTEM ==========
+
     sock.ev.on('connection.update', async (update) => {
       const { connection, lastDisconnect, qr } = update;
 
@@ -66,6 +79,7 @@ async function initSocket() {
         }
       } else if (connection === 'open') {
         console.log('\n✅ BOT ONLINE & STABIL!');
+        console.log('🛡️ [ANTI-LINK] System siap mendeteksi link');
       }
     });
 
@@ -91,6 +105,11 @@ async function initSocket() {
                              '';
           
           console.log(`\n📩 [MSG] From: ${message.key.participant || chatId} | Text: "${messageText}"`);
+          
+          // ========== ANTI-LINK DETECTION (RUN BEFORE COMMAND) ==========
+          // Biarkan sistem anti-link bekerja terlebih dahulu
+          // Sistem anti-link sudah di-handle oleh setup function
+          // ========== END ANTI-LINK DETECTION ==========
           
           const { command, args } = parseCommand(messageText);
           
@@ -241,9 +260,26 @@ async function initSocket() {
 async function main() {
   try {
     console.log('🚀 Starting Bot Hybrid Mode...');
+    console.log('🛡️ Loading Anti-Link System...');
+    
     initDatabase();
-    try { await initTables(); } catch (e) {}
+    try { 
+      await initTables(); 
+    } catch (e) {
+      console.log('⚠️ Database table init error:', e.message);
+    }
+    
+    // Load commands termasuk anti-link
     loadCommands();
+    
+    // Register additional anti-link command jika ada
+    if (antiLinkModule.resetViolations) {
+      const { getCommands } = require('./lib/handler');
+      const commands = getCommands();
+      commands.set('resetviolations', antiLinkModule.resetViolations);
+      console.log('🛡️ [ANTI-LINK] Command resetviolations registered');
+    }
+    
     await initSocket();
   } catch (error) {
     console.error('Failed to start:', error);
