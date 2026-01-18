@@ -1,8 +1,3 @@
-/**
- * Bot WhatsApp Jual Beli - Anti-401 Final Version (Owner HWID Fixed)
- * + ANTI-LINK SYSTEM INTEGRATION - FIXED VERSION
- */
-
 const path = require('path');
 const fs = require('fs');
 const pino = require('pino');
@@ -165,6 +160,7 @@ async function initSocket() {
               botLid = sock.user.id;
             }
             
+            console.log(`🔐 [ADMIN] sock.user: ${JSON.stringify(sock.user)}`);
             console.log(`🔐 [ADMIN] Bot JID: ${botJid} | Bot LID: ${botLid}`);
             console.log(`🔐 [ADMIN] Sender raw: ${senderId} | Sender clean: ${cleanSender}`);
             console.log(`🔐 [ADMIN] IsOwner: ${isOwner}`);
@@ -177,11 +173,20 @@ async function initSocket() {
                 
                 // Check if bot is admin - check ALL participants for bot
                 if (botJid || botLid) {
+                  const botNumber = botJid?.split('@')[0] || botLid?.split(':')[0]?.split('@')[0];
+                  
                   const botParticipant = participants.find(p => {
-                    return p.id === botJid || 
-                           p.id === botLid ||
-                           p.id === sock.user?.id ||
-                           (botJid && p.id?.startsWith(botJid.split('@')[0]));
+                    // Exact match dengan berbagai format
+                    if (p.id === botJid || p.id === botLid || p.id === sock.user?.id) return true;
+                    
+                    // Match berdasarkan number saja (support @lid format)
+                    const pNumber = p.id?.split('@')[0]?.split(':')[0];
+                    if (botNumber && pNumber === botNumber) return true;
+                    
+                    // Match prefix number
+                    if (botNumber && p.id?.startsWith(botNumber)) return true;
+                    
+                    return false;
                   });
                   
                   if (botParticipant) {

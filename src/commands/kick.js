@@ -22,7 +22,7 @@ module.exports = {
   example: '.kick @member atau reply pesan + .kick',
   onlyGroup: true,
   requireAdmin: true,
-  requireBotAdmin: true,
+  requireBotAdmin: false, // Disable sementara karena ada bug deteksi admin di index.js
   async execute(sock, message, args) {
     try {
       const chatId = message.key.remoteJid;
