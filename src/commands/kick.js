@@ -1,5 +1,20 @@
 const { createWarningMessage, createInfoMessage } = require('../lib/utils');
 
+// Helper function untuk normalisasi JID
+function normalizeJid(jid) {
+  if (!jid) return null;
+  // Jika sudah format yang benar
+  if (jid.endsWith('@s.whatsapp.net')) return jid;
+  if (jid.endsWith('@lid')) return jid;
+  // Jika mengandung ':' (device format), ambil bagian number saja
+  if (jid.includes(':')) {
+    const num = jid.split(':')[0];
+    return num + '@s.whatsapp.net';
+  }
+  // Default: asumsikan sudah format number, convert ke wa.net
+  return jid.replace(/@.+$/, '') + '@s.whatsapp.net';
+}
+
 module.exports = {
   name: 'kick',
   description: 'Kick member dari grup (tag atau reply pesan)',
@@ -11,13 +26,11 @@ module.exports = {
   async execute(sock, message, args) {
     try {
       const chatId = message.key.remoteJid;
-      const senderId = message.key.participant || message.key.remoteJid;
       
       // Ambil mentioned JIDs dari contextInfo
       const mentionedJids = message.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
       
       // Ambil quoted message untuk reply
-      const quotedMessage = message.message?.extendedTextMessage?.contextInfo?.quotedMessage;
       const quotedParticipant = message.message?.extendedTextMessage?.contextInfo?.participant;
       
       // Target yang akan di-kick
@@ -25,14 +38,14 @@ module.exports = {
       
       // 1. Jika ada mention (@tag)
       if (mentionedJids.length > 0) {
-        targets = mentionedJids;
+        targets = mentionedJids.map(jid => normalizeJid(jid)).filter(Boolean);
       }
       
       // 2. Jika reply pesan, ambil pengirim pesan yang di-reply
-      if (quotedMessage && quotedParticipant) {
-        // Jika belum ada di targets, tambahkan
-        if (!targets.includes(quotedParticipant)) {
-          targets.push(quotedParticipant);
+      if (quotedParticipant) {
+        const normalizedQuoted = normalizeJid(quotedParticipant);
+        if (normalizedQuoted && !targets.includes(normalizedQuoted)) {
+          targets.push(normalizedQuoted);
         }
       }
       
@@ -45,7 +58,7 @@ module.exports = {
       }
       
       // Filter: jangan kick bot sendiri
-      const botJid = sock.user?.id;
+      const botJid = normalizeJid(sock.user?.id);
       targets = targets.filter(target => target !== botJid);
       
       if (targets.length === 0) {
@@ -55,16 +68,21 @@ module.exports = {
         };
       }
       
+      console.log(`[KICK] Targets: ${JSON.stringify(targets)}`);
+      console.log(`[KICK] ChatId: ${chatId}`);
+      
       // Eksekusi kick
       const failed = [];
       const success = [];
       
       for (const target of targets) {
         try {
+          console.log(`[KICK] Attempting to kick: ${target}`);
           await sock.groupParticipantsUpdate(chatId, [target], 'remove');
           success.push(target.split('@')[0]);
+          console.log(`[KICK] Success kicked: ${target}`);
         } catch (error) {
-          console.error(`Gagal kick ${target}:`, error.message);
+          console.error(`[KICK] Gagal kick ${target}:`, error.message);
           failed.push(target.split('@')[0]);
         }
       }
@@ -82,9 +100,11 @@ module.exports = {
       
       resultText += `Total: ${success.length} berhasil, ${failed.length} gagal`;
       
+      const allMentions = [...success.map(u => `${u}@s.whatsapp.net`), ...failed.map(u => `${u}@s.whatsapp.net`)];
+      
       await sock.sendMessage(chatId, {
         text: createInfoMessage(resultText),
-        mentions: [...success.map(u => `${u}@s.whatsapp.net`), ...failed.map(u => `${u}@s.whatsapp.net`)]
+        mentions: allMentions
       });
       
       return { success: true };
