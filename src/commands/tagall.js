@@ -41,38 +41,29 @@ module.exports = {
           messageText = quoted.documentMessage.caption;
         }
       }
-      // Opsi 3: Ambil pesan sebelumnya dari admin
       else {
-        // Simulasi: mengambil pesan terakhir admin sebelum command
-        // Dalam implementasi nyata, butuh sistem cache/store
         messageText = "Penting! Harap baca pesan ini.";
       }
 
-      // 3. Jika tetap kosong, beri default
       if (!messageText.trim()) {
         messageText = "Pesan penting dari admin";
       }
 
-      // 4. Buat hidden mention pattern
       const zeroWidthChar = '‌'; // U+200C Zero Width Non-Joiner
       const spaceChar = ' '; // Spasi normal
       
-      // Pattern untuk hidden mention: karakter tak terlihat di antara spasi
       let hiddenMentionPattern = '';
       for (let i = 0; i < participants.length; i++) {
         hiddenMentionPattern += `${zeroWidthChar}${spaceChar}`;
       }
 
-      // 5. Gabungkan pesan asli dengan hidden mentions
       const finalMessage = `${messageText}\n\n${hiddenMentionPattern}`;
 
-      // 6. Kirim pesan dengan hidden mentions
       await sock.sendMessage(chatId, {
         text: finalMessage,
         mentions: mentions // Semua member ditag tapi tak terlihat
       });
 
-      // 7. Hapus pesan command untuk kerahasiaan
       setTimeout(async () => {
         try {
           await sock.sendMessage(chatId, {
@@ -83,7 +74,6 @@ module.exports = {
             }
           });
         } catch (e) {
-          // Silent fail jika tidak bisa delete
         }
       }, 1000);
 

@@ -4,7 +4,7 @@ const { createInfoMessage } = require('../lib/utils');
 const ANTI_LINK_CONFIG = {
   enabled: true,
   whitelist: ['wa.me', 'facebook.com', 'twitter.com', 'youtube.com', 'youtu.be'], // Domain yang diizinkan
-  action: 'kick', // 'kick', 'warn', 'delete'
+  action: 'delete', // 'kick', 'warn', 'delete'
   adminImmunity: true,
   groupCreatorImmunity: true,
   warningCount: 1 // Jumlah peringatan sebelum kick
