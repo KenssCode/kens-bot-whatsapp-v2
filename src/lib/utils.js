@@ -1,8 +1,3 @@
-/**
- * Utility Functions
- * Helper functions untuk bot WhatsApp
- */
-
 const config = require('../config/config');
 
 /**

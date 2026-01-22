@@ -2,14 +2,12 @@ const path = require('path');
 const fs = require('fs');
 const pino = require('pino');
 
-// Load konfigurasi
 const config = require('./config/config');
 const { loadCommands, executeCommand } = require('./lib/handler');
 const { bindSocket } = require('./lib/store');
 const { initDatabase, initTables, closeDatabase } = require('./lib/connect');
 const { parseCommand } = require('./lib/utils');
 
-// PAKAI NAMA FIX: Jangan ganti-ganti lagi biar Railway stabil
 const sessionDir = path.join(__dirname, '../session_permanen_bot');
 
 async function initSocket() {

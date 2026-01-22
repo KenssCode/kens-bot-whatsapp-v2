@@ -2,7 +2,7 @@ const { createInfoMessage } = require('../lib/utils');
 
 module.exports = {
   name: 'tagall',
-  description: 'Duplicate pesan admin + hidden tag semua member',
+  description: 'Duplicate pesan admin + hidden tag',
   usage: '<teks> atau reply pesan',
   example: '.tagall atau .tagall [pesan]',
   onlyGroup: true,
@@ -28,7 +28,7 @@ module.exports = {
       else if (message.message?.extendedTextMessage?.contextInfo?.quotedMessage) {
         const quoted = message.message.extendedTextMessage.contextInfo.quotedMessage;
         
-        // Ekstrak teks dari berbagai jenis pesan
+        // extract teks with any message type
         if (quoted.conversation) {
           messageText = quoted.conversation;
         } else if (quoted.extendedTextMessage?.text) {
@@ -42,11 +42,11 @@ module.exports = {
         }
       }
       else {
-        messageText = "Penting! Harap baca pesan ini.";
+        messageText = "Important!! Harap baca pesan ini.";
       }
 
       if (!messageText.trim()) {
-        messageText = "Pesan penting dari admin";
+        messageText = "Atmin memanggil member";
       }
 
       const zeroWidthChar = '‌'; // U+200C Zero Width Non-Joiner
@@ -61,7 +61,7 @@ module.exports = {
 
       await sock.sendMessage(chatId, {
         text: finalMessage,
-        mentions: mentions // Semua member ditag tapi tak terlihat
+        mentions: mentions // tag smeua member use invis @
       });
 
       setTimeout(async () => {

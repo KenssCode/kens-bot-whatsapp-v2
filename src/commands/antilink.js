@@ -4,10 +4,7 @@ const { createInfoMessage } = require('../lib/utils');
 const ANTI_LINK_CONFIG = {
   enabled: true,
   whitelist: ['wa.me', 'facebook.com', 'twitter.com', 'youtube.com', 'youtu.be'], // Domain yang diizinkan
-  action: 'delete', // 'kick', 'warn', 'delete'
-  adminImmunity: true,
-  groupCreatorImmunity: true,
-  warningCount: 1 // Jumlah peringatan sebelum kick
+  adminImmunity: true
 };
 
 // Store untuk tracking pelanggaran
@@ -15,7 +12,7 @@ const linkViolations = new Map();
 
 module.exports = {
   name: 'antilink',
-  description: 'Auto kick member yang kirim link',
+  description: 'Auto hapus pesan yang mengandung link',
   usage: '<on/off/list/add>',
   example: '.antilink on',
   onlyGroup: true,
@@ -27,28 +24,28 @@ module.exports = {
       if (args[0] === 'on') {
         ANTI_LINK_CONFIG.enabled = true;
         await sock.sendMessage(chatId, {
-          text: createInfoMessage('✅ Anti-link system diaktifkan! Bot akan auto kick yang kirim link.')
+          text: createInfoMessage('Anti-link system diaktifkan! Bot akan auto hapus pesan yang mengandung link.')
         });
       } else if (args[0] === 'off') {
         ANTI_LINK_CONFIG.enabled = false;
         await sock.sendMessage(chatId, {
-          text: createInfoMessage('❌ Anti-link system dimatikan.')
+          text: createInfoMessage('Anti-link system dimatikan.')
         });
       } else if (args[0] === 'list') {
-        const whitelist = ANTI_LINK_CONFIG.whitelist.join('\n• ');
+        const whitelist = ANTI_LINK_CONFIG.whitelist.join('\n- ');
         await sock.sendMessage(chatId, {
-          text: createInfoMessage(`📋 Domain whitelist:\n• ${whitelist}\n\nTotal: ${ANTI_LINK_CONFIG.whitelist.length} domain`)
+          text: createInfoMessage(`Domain whitelist:\n- ${whitelist}\n\nTotal: ${ANTI_LINK_CONFIG.whitelist.length} domain`)
         });
       } else if (args[0] === 'add' && args[1]) {
         const domain = args[1].toLowerCase().replace(/https?:\/\//, '').replace(/^www\./, '').split('/')[0];
         if (!ANTI_LINK_CONFIG.whitelist.includes(domain)) {
           ANTI_LINK_CONFIG.whitelist.push(domain);
           await sock.sendMessage(chatId, {
-            text: createInfoMessage(`✅ Domain "${domain}" ditambahkan ke whitelist.`)
+            text: createInfoMessage(`Domain "${domain}" ditambahkan ke whitelist.`)
           });
         } else {
           await sock.sendMessage(chatId, {
-            text: createInfoMessage(`ℹ️ Domain "${domain}" sudah ada di whitelist.`)
+            text: createInfoMessage(`Domain "${domain}" sudah ada di whitelist.`)
           });
         }
       } else if (args[0] === 'remove' && args[1]) {
@@ -57,11 +54,11 @@ module.exports = {
         if (index > -1) {
           ANTI_LINK_CONFIG.whitelist.splice(index, 1);
           await sock.sendMessage(chatId, {
-            text: createInfoMessage(`✅ Domain "${domain}" dihapus dari whitelist.`)
+            text: createInfoMessage(`Domain "${domain}" dihapus dari whitelist.`)
           });
         } else {
           await sock.sendMessage(chatId, {
-            text: createInfoMessage(`❌ Domain "${domain}" tidak ditemukan di whitelist.`)
+            text: createInfoMessage(`Domain "${domain}" tidak ditemukan di whitelist.`)
           });
         }
       } else if (args[0] === 'status') {
@@ -71,30 +68,29 @@ module.exports = {
         
         await sock.sendMessage(chatId, {
           text: createInfoMessage(
-            `🛡️ *Status Anti-Link*\n\n` +
-            `• Status: ${ANTI_LINK_CONFIG.enabled ? '✅ AKTIF' : '❌ NONAKTIF'}\n` +
-            `• Action: ${ANTI_LINK_CONFIG.action.toUpperCase()}\n` +
-            `• Warning: ${ANTI_LINK_CONFIG.warningCount}x sebelum kick\n` +
-            `• Immunity: ${ANTI_LINK_CONFIG.adminImmunity ? 'Admin ✅' : '❌'}\n` +
-            `• Pelanggaran aktif: ${violations}\n` +
-            `• Whitelist: ${ANTI_LINK_CONFIG.whitelist.length} domain`
+            `Status Anti-Link\n\n` +
+            `Status: ${ANTI_LINK_CONFIG.enabled ? 'AKTIF' : 'NONAKTIF'}\n` +
+            `Action: Hapus pesan link\n` +
+            `Immunity: ${ANTI_LINK_CONFIG.adminImmunity ? 'Admin' : 'Tidak'}\n` +
+            `Pelanggaran aktif: ${violations}\n` +
+            `Whitelist: ${ANTI_LINK_CONFIG.whitelist.length} domain`
           )
         });
       } else {
         const status = ANTI_LINK_CONFIG.enabled ? 'AKTIF' : 'NONAKTIF';
         await sock.sendMessage(chatId, {
           text: createInfoMessage(
-            `🛡️ *Anti-link System*\n\n` +
+            `Anti-link System\n\n` +
             `Status: ${status}\n\n` +
-            `*Penggunaan:*\n` +
-            `• .antilink on/off\n` +
-            `• .antilink list\n` +
-            `• .antilink add <domain>\n` +
-            `• .antilink remove <domain>\n` +
-            `• .antilink status\n\n` +
-            `*Reset pelanggaran:*\n` +
-            `• .resetviolations @member\n` +
-            `• .resetviolations all`
+            `Penggunaan:\n` +
+            `- .antilink on/off\n` +
+            `- .antilink list\n` +
+            `- .antilink add <domain>\n` +
+            `- .antilink remove <domain>\n` +
+            `- .antilink status\n\n` +
+            `Reset pelanggaran:\n` +
+            `- .resetviolations @member\n` +
+            `- .resetviolations all`
           )
         });
       }
@@ -155,7 +151,7 @@ async function setupAntiLinkSystem(sock) {
         
         // Cek immunity
         if (checkImmunity(participant)) {
-          console.log(`🛡️ [ANTI-LINK] Immunity: ${sender} adalah admin`);
+          console.log(`[ANTI-LINK] Immunity: ${sender} adalah admin`);
           continue;
         }
         
@@ -165,11 +161,11 @@ async function setupAntiLinkSystem(sock) {
         );
         
         if (violationLinks.length > 0) {
-          console.log(`🛡️ [ANTI-LINK] Violation detected: ${sender} sent ${violationLinks.length} links`);
-          // Aksi berdasarkan config
-          await handleLinkViolation(sock, chatId, sender, participant, violationLinks, message, msg.key);
+          console.log(`[ANTI-LINK] Violation detected: ${sender} sent ${violationLinks.length} links`);
+          // Hapus pesan yang mengandung link
+          await handleLinkViolation(sock, chatId, sender, violationLinks, msg.key);
         } else {
-          console.log(`🛡️ [ANTI-LINK] Whitelisted links from ${sender}`);
+          console.log(`[ANTI-LINK] Whitelisted links from ${sender}`);
         }
         
       } catch (error) {
@@ -259,12 +255,12 @@ function checkImmunity(participant) {
   return false;
 }
 
-async function handleLinkViolation(sock, chatId, sender, participant, violationLinks, message, msgKey) {
+async function handleLinkViolation(sock, chatId, sender, violationLinks, msgKey) {
   const violationKey = `${chatId}:${sender}`;
   const currentCount = (linkViolations.get(violationKey) || 0) + 1;
   linkViolations.set(violationKey, currentCount);
   
-  console.log(`🛡️ [ANTI-LINK] Violation ${currentCount} for ${sender}: ${violationLinks.join(', ')}`);
+  console.log(`[ANTI-LINK] Violation ${currentCount} for ${sender}: ${violationLinks.join(', ')}`);
   
   // Hapus pesan yang mengandung link
   try {
@@ -276,63 +272,16 @@ async function handleLinkViolation(sock, chatId, sender, participant, violationL
         participant: sender
       }
     });
-    console.log(`🛡️ [ANTI-LINK] Message deleted`);
+    console.log(`[ANTI-LINK] Message deleted`);
   } catch (e) {
-    console.log('🛡️ [ANTI-LINK] Gagal menghapus pesan:', e.message);
-  }
-  
-  const domains = violationLinks.join(', ');
-  const senderName = sender.split('@')[0];
-  
-  if (ANTI_LINK_CONFIG.action === 'kick') {
-    // Langsung kick jika config atau sudah melebihi warning
-    if (ANTI_LINK_CONFIG.warningCount <= 1 || currentCount >= ANTI_LINK_CONFIG.warningCount) {
-      // Kick participant
-      try {
-        await sock.groupParticipantsUpdate(chatId, [sender], 'remove');
-        
-        // Kirim notifikasi
-        await sock.sendMessage(chatId, {
-          text: createInfoMessage(`🚫 @${senderName} telah di-kick karena mengirim link terlarang:\n${domains}\nTotal pelanggaran: ${currentCount}x`),
-          mentions: [sender]
-        });
-        
-        console.log(`🛡️ [ANTI-LINK] Kicked ${sender}`);
-        
-        // Reset counter
-        linkViolations.delete(violationKey);
-      } catch (error) {
-        console.error('🛡️ [ANTI-LINK] Gagal kick member:', error.message);
-        
-        // Kirim notifikasi error
-        await sock.sendMessage(chatId, {
-          text: createInfoMessage(`⚠️ Gagal kick @${senderName} (mungkin bukan admin?)`)
-        });
-      }
-    } else {
-      // Kirim warning
-      await sock.sendMessage(chatId, {
-        text: createInfoMessage(`⚠️ Peringatan ${currentCount}/${ANTI_LINK_CONFIG.warningCount} untuk @${senderName}\nDilarang mengirim link: ${domains}`),
-        mentions: [sender]
-      });
-      console.log(`🛡️ [ANTI-LINK] Warning sent to ${sender}`);
-    }
-  } else if (ANTI_LINK_CONFIG.action === 'warn') {
-    // Hanya warning
-    await sock.sendMessage(chatId, {
-      text: createInfoMessage(`⚠️ @${senderName} mengirim link terlarang: ${domains}\nPelanggaran ke-${currentCount}`),
-      mentions: [sender]
-    });
-  } else if (ANTI_LINK_CONFIG.action === 'delete') {
-    // Hanya delete pesan, tidak ada notifikasi
-    console.log(`🛡️ [ANTI-LINK] Link deleted from ${sender}`);
+    console.log('[ANTI-LINK] Gagal menghapus pesan:', e.message);
   }
   
   // Auto reset counter setelah 1 jam
   setTimeout(() => {
     if (linkViolations.get(violationKey) === currentCount) {
       linkViolations.delete(violationKey);
-      console.log(`🛡️ [ANTI-LINK] Auto reset violations for ${sender}`);
+      console.log(`[ANTI-LINK] Auto reset violations for ${sender}`);
     }
   }, 3600000);
 }
@@ -359,7 +308,7 @@ module.exports.resetViolations = {
           }
         }
         await sock.sendMessage(chatId, {
-          text: createInfoMessage(`✅ ${count} pelanggaran di group ini telah direset.`)
+          text: createInfoMessage(`${count} pelanggaran di group ini telah direset.`)
         });
       } else {
         // Reset untuk member tertentu
@@ -378,11 +327,11 @@ module.exports.resetViolations = {
         
         if (count > 0) {
           await sock.sendMessage(chatId, {
-            text: createInfoMessage(`✅ Pelanggaran telah direset untuk ${count} member.`)
+            text: createInfoMessage(`Pelanggaran telah direset untuk ${count} member.`)
           });
         } else if (mentioned.length > 0) {
           await sock.sendMessage(chatId, {
-            text: createInfoMessage(`ℹ️ Tidak ada pelanggaran yang ditemukan untuk member tersebut.`)
+            text: createInfoMessage(`Tidak ada pelanggaran yang ditemukan untuk member tersebut.`)
           });
         } else {
           await sock.sendMessage(chatId, {
@@ -405,3 +354,4 @@ module.exports.resetViolations = {
 
 // Ekspor setup function
 module.exports.setup = setupAntiLinkSystem;
+

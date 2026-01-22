@@ -1,6 +1,3 @@
-/**
- * Command: .admin (Fixed for No-Store Mode)
- */
 const { createInfoMessage, createWarningMessage } = require('../lib/utils');
 
 module.exports = {
@@ -37,7 +34,6 @@ module.exports = {
         adminText += `ℹ️ Tidak ada admin di grup ini.\n`;
       } else {
         admins.forEach((admin, index) => {
-          // Kita pakai format nomor saja karena store (nama kontak) sedang off
           const jid = admin.id.split('@')[0];
           adminText += `${index + 1}. @${jid}\n`;
         });
@@ -46,7 +42,6 @@ module.exports = {
       adminText += `\n━━━━━━━━━━━━━━━━━━━━\n`;
       adminText += `💡 _Gunakan .h untuk panggil admin_`;
       
-      // 3. Kirim pesan dengan mentions agar nomornya biru (bisa diklik)
       const adminJids = admins.map(admin => admin.id);
       
       await sock.sendMessage(chatId, {

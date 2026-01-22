@@ -46,7 +46,7 @@ module.exports = {
       const quotedMessage = message.message?.extendedTextMessage?.contextInfo?.quotedMessage;
       
       // Prepare options
-      const successMessage = createSuccessMessage(`Berhasil membuka grup "${groupName}"!\n\nSemua member dapat mengirim pesan sekarang.\n\nGunakan .close untuk menutup grup kembali.`);
+      const successMessage = createSuccessMessage(`Group has been opened "${groupName}"!\n\nAtmin datank.\n\nUse .close to close Group.`);
       
       const options = { text: successMessage };
       

@@ -1,7 +1,6 @@
 const pino = require('pino');
 const config = require('../config/config');
 
-// Kita buat store jadi object kosong saja
 let store = {
   chats: { all: () => [], get: () => null, insert: () => {} },
   contacts: { all: () => [], get: () => null, upsert: () => {} },
@@ -11,7 +10,7 @@ let store = {
 
 const logger = pino({ level: config.logLevel || 'silent' });
 
-// Fungsi bindSocket dibuat supaya tidak melakukan apa-apa
+// bindSocket function to disable store usage
 async function bindSocket(sock) {
   console.log("ℹ️ Store sementara dinonaktifkan untuk menghindari error library.");
   return true;

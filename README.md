@@ -1,24 +1,26 @@
-# 🤖 Bot WhatsApp Jual Beli
-
-Bot WhatsApp untuk grup jual beli yang berjalan 24 jam di Railway.
+# 🤖 Bot WhatsApp
 
 ## ✨ Fitur
 
-| Command   | Deskripsi                          | Akses        |
-| --------- | ---------------------------------- | ------------ |
-| `.help`   | Menampilkan daftar lengkap command | Semua Member |
-| `.fee`    | Melihat informasi fee rekber       | Semua Member |
-| `.admin`  | Menampilkan daftar admin di grup   | Semua Member |
-| `.h`      | Hidetag pesan yang di-reply        | Admin Only   |
-| `.tagall` | Mention semua member di grup       | Admin Only   |
+| Command      | Deskripsi                          | Akses        |
+| ------------ | ---------------------------------- | ------------ |
+| `.help`      | Menampilkan daftar lengkap command | Semua Member |
+| `.fee`       | Melihat informasi fee rekber       | Semua Member |
+| `.admin`     | Menampilkan daftar admin di grup   | Semua Member |
+| `.h`         | Hidetag pesan yang di-reply        | Admin Only   |
+| `.tagall`    | Mention semua member di grup       | Admin Only   |
+| `.close`     | Menutup grup                       | Admin Only   |
+| `.open`      | Membuka grup                       | Admin Only   |
+| `.antilink`  | Automation delete link in group    | Admin Only   |
+| `.autoreply` | Automation reply with              | Admin Only   |
 
 ## 🚀 Cara Deployment ke Railway via GitHub
 
 ### Prerequisites
 
-- Akun GitHub
-- Akun Railway (railway.app)
-- Node.js 18+ terinstall
+- Github Account
+- Railway Account (railway.app)
+- Node.js 18+ installed
 
 ### Langkah 1: Persiapan Lokal
 
@@ -63,7 +65,6 @@ GROUP_NAME=Jual Beli
 ### Langkah 2: Push ke GitHub
 
 1. **Buat repository baru di GitHub:**
-
    - Buka [GitHub](https://github.com)
    - Klik "New Repository"
    - Nama: `bot-wa-jualbeli`
@@ -87,12 +88,10 @@ git push -u origin main
 ### Langkah 3: Deployment di Railway
 
 1. **Buka Railway:**
-
    - Buka [railway.app](https://railway.app)
    - Login dengan akun GitHub
 
 2. **Buat project baru:**
-
    - Klik "New Project"
    - Pilih "Deploy from GitHub repo"
    - Pilih repository `bot-wa-jualbeli`
@@ -100,7 +99,6 @@ git push -u origin main
 3. **Configure service:**
 
    a. **Tambah variabel environment:**
-
    - Klik pada service bot
    - Pilih "Variables" tab
    - Tambah variabel:
@@ -111,7 +109,6 @@ git push -u origin main
      - `GROUP_NAME` - Nama grup
 
    b. **Tambah PostgreSQL database:**
-
    - Klik "New" → "Database" → "PostgreSQL"
    - Database akan otomatis dibuat
    - Copy connection string dari database
@@ -125,13 +122,11 @@ git push -u origin main
 ### Langkah 4: Menghubungkan Bot ke WhatsApp
 
 1. **Buka Railway logs:**
-
    - Di dashboard Railway, klik service bot
    - Pilih "Logs" tab
    - Tunggu hingga QR code muncul
 
 2. **Scan QR Code:**
-
    - Buka WhatsApp di HP
    - Klik 三点 (menu) → "Linked Devices"
    - Scan QR code dari Railway logs

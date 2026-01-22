@@ -1,6 +1,4 @@
-/**
- * Command Handler - Enhanced Version with Anti-Link Support
- */
+// Command Handler - Enhanced Version with Anti-Link Support
 
 const fs = require('fs');
 const path = require('path');
@@ -142,7 +140,6 @@ async function isUserAdmin(sock, chatId, userId) {
       participant.admin === true
     );
     
-    // Simpan ke cache (expire dalam 30 detik)
     groupAdminCache.set(cacheKey, isAdmin);
     setTimeout(() => groupAdminCache.delete(cacheKey), 30000);
     
@@ -153,7 +150,7 @@ async function isUserAdmin(sock, chatId, userId) {
   }
 }
 
-// Cooldown system untuk mencegah spam
+// Avoid spamming command usage with cooldowns
 function checkCooldown(userId, commandName) {
   const cooldownTime = 2000; // 2 detik cooldown
   const key = `${userId}:${commandName}`;
@@ -187,10 +184,8 @@ async function executeCommand(commandName, sock, message, args) {
   const chatId = message.key.remoteJid;
   
   try {
-    // Log command execution
     console.log(`🔧 [CMD] .${commandName} by ${userId.slice(0, 15)}... in ${chatId}`);
     
-    // Cek cooldown
     const cooldownLeft = checkCooldown(userId, commandName);
     if (cooldownLeft > 0) {
       return {
@@ -199,7 +194,7 @@ async function executeCommand(commandName, sock, message, args) {
       };
     }
     
-    // Cek grup only
+    // group only check
     if (command.onlyGroup && !message.isGroup) {
       return {
         success: false,
@@ -207,9 +202,8 @@ async function executeCommand(commandName, sock, message, args) {
       };
     }
     
-    // Cek admin requirement
+    // admin requirement check
     if (command.requireAdmin) {
-      // Jika sudah ada di message object (dari index.js), gunakan yang sudah dihitung
       if (typeof message.isSenderAdmin !== 'undefined') {
         if (!message.isSenderAdmin) {
           return {
@@ -218,7 +212,6 @@ async function executeCommand(commandName, sock, message, args) {
           };
         }
       } else {
-        // Jika tidak, hitung ulang
         const isAdmin = await isUserAdmin(sock, chatId, userId);
         if (!isAdmin) {
           return {
@@ -239,8 +232,8 @@ async function executeCommand(commandName, sock, message, args) {
       }
     }
     
-    // Eksekusi command dengan timeout
-    const timeout = 30000; // 30 detik timeout
+    // Command execution with timeout
+    const timeout = 30000; // 30s timeout
     const commandPromise = command.execute(sock, message, args);
     const timeoutPromise = new Promise((_, reject) => {
       setTimeout(() => reject(new Error('Command timeout')), timeout);
@@ -284,15 +277,14 @@ function generateHelpText(userId = '') {
   
   const allCommands = getAllCommands();
   
-  // Urutkan alfabetis
+  // Alfabetis size
   allCommands.sort((a, b) => a.name.localeCompare(b.name));
   
-  // Filter berdasarkan izin
   const publicCommands = allCommands.filter(cmd => !cmd.requireAdmin);
   const adminCommands = allCommands.filter(cmd => cmd.requireAdmin);
   const hiddenCommands = allCommands.filter(cmd => cmd.hidden);
   
-  // Command umum
+  // Command umum section
   if (publicCommands.length > 0) {
     helpText += `*COMMAND UMUM:*\n`;
     publicCommands.forEach(command => {
@@ -303,7 +295,7 @@ function generateHelpText(userId = '') {
     helpText += `\n`;
   }
   
-  // Command admin
+  // Command admin section
   if (adminCommands.length > 0) {
     helpText += `*COMMAND ADMIN:* 🔒\n`;
     adminCommands.forEach(command => {
@@ -314,7 +306,7 @@ function generateHelpText(userId = '') {
     helpText += `\n`;
   }
   
-  // Info footer
+  // Footer
   helpText += `━━━━━━━━━━━━━━━━━━━━\n`;
   helpText += `Prefix: ${config.commandPrefix || '.'}\n`;
   helpText += `Total: ${publicCommands.length + adminCommands.length - hiddenCommands.length} command\n`;
@@ -362,7 +354,7 @@ function getCommandHelp(commandName) {
   return helpText;
 }
 
-// Fungsi untuk reload commands (hot reload)
+// Reload all command
 function reloadCommands() {
   console.log('🔄 Reloading all commands...');
   commands.clear();
@@ -373,7 +365,7 @@ function reloadCommands() {
   return count;
 }
 
-// Cleanup cache secara berkala
+// Cleanup cache lama setiap menit
 setInterval(() => {
   const now = Date.now();
   let cleared = 0;

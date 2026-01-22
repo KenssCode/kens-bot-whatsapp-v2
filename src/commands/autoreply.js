@@ -1,8 +1,3 @@
-/**
- * Command: .autoreply
- * Auto reply berdasarkan kata kunci
- */
-
 const config = require('../config/config');
 
 module.exports = {

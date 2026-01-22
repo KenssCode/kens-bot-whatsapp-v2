@@ -81,6 +81,15 @@ module.exports = {
           await sock.groupParticipantsUpdate(chatId, [target], 'remove');
           success.push(target.split('@')[0]);
           console.log(`[KICK] Success kicked: ${target}`);
+          
+          // Kirim notifikasi segera setelah kick berhasil
+          await sock.sendMessage(chatId, {
+            text: `🚫 @${target.split('@')[0]} CUHHH 💦, KELUAR KAU HAMA`,
+            mentions: [target]
+          });
+          
+          // Delay sejenak untuk menghindari rate limit
+          await new Promise(resolve => setTimeout(resolve, 500));
         } catch (error) {
           console.error(`[KICK] Gagal kick ${target}:`, error.message);
           failed.push(target.split('@')[0]);
